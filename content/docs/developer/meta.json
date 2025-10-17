@@ -1,0 +1,10 @@
+{
+  "title": "Developer",
+  "pages": [
+    "getting-started",
+    "sdk-reference",
+    "examples",
+    "testing",
+    "deployment"
+  ]
+}

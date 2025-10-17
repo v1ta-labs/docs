@@ -1,0 +1,539 @@
+---
+title: Technical Architecture
+description: Deep dive into v1ta's technical design and implementation
+icon: Code
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Technical Architecture
+
+v1ta is built as a Solana program using the Anchor framework. This document provides a comprehensive overview of the technical architecture and design decisions.
+
+## System Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        v1ta Protocol                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │   Global     │  │  VUSD Mint   │  │   Stability  │     │
+│  │    State     │  │              │  │     Pool     │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              User Positions (PDAs)                    │  │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐ │  │
+│  │  │Position │  │Position │  │Position │  │  ...   │ │  │
+│  │  │   #1    │  │   #2    │  │   #3    │  │        │ │  │
+│  │  └─────────┘  └─────────┘  └─────────┘  └────────┘ │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │         Stability Pool Deposits (PDAs)               │  │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐ │  │
+│  │  │ Deposit │  │ Deposit │  │ Deposit │  │  ...   │ │  │
+│  │  │   #1    │  │   #2    │  │   #3    │  │        │ │  │
+│  │  └─────────┘  └─────────┘  └─────────┘  └────────┘ │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │  Pyth Oracle  │
+                    │   SOL/USD     │
+                    └───────────────┘
+```
+
+## Technology Stack
+
+### Core Components
+
+- **Language**: Rust
+- **Framework**: Anchor 0.31.1
+- **Blockchain**: Solana
+- **Oracle**: Pyth Network
+- **Token Standard**: SPL Token
+
+### Key Dependencies
+
+```toml
+[dependencies]
+anchor-lang = "0.31.1"
+anchor-spl = "0.31.1"
+pyth-solana-receiver-sdk = "1.0.1"
+solana-clock = "2.2.2"
+```
+
+## Program Structure
+
+### Program ID
+
+```
+Devnet: D4PzAjCQtGL5n6b79fBJh5Z84GKJk1ruPCYn8914dsST
+```
+
+### File Structure
+
+```
+programs/v1ta-devnet/
+├── src/
+│   ├── lib.rs              # Program entrypoint & instruction handlers
+│   ├── state.rs            # State account definitions
+│   ├── errors.rs           # Custom error types
+│   ├── constants.rs        # Protocol constants
+│   └── instructions/
+│       ├── initialize.rs          # Protocol initialization
+│       ├── open_position.rs       # Open CDP
+│       ├── adjust_position.rs     # Modify CDP
+│       ├── close_position.rs      # Close CDP
+│       ├── liquidate.rs           # Liquidate unhealthy CDP
+│       ├── redeem.rs              # Redeem VUSD for SOL
+│       ├── deposit_stability.rs   # Deposit to Stability Pool
+│       └── withdraw_stability.rs  # Withdraw from Stability Pool
+└── Cargo.toml
+```
+
+## State Accounts
+
+v1ta uses four types of state accounts, all implemented as PDAs (Program Derived Addresses).
+
+### 1. GlobalState
+
+**Purpose**: Stores protocol-wide state and configuration.
+
+**PDA Seeds**: `["global-state"]`
+
+**Size**: 145 bytes
+
+```rust
+pub struct GlobalState {
+    pub authority: Pubkey,              // 32 bytes - Protocol admin
+    pub vusd_mint: Pubkey,              // 32 bytes - VUSD mint address
+    pub stability_pool: Pubkey,         // 32 bytes - Stability Pool address
+    pub total_collateral: u64,          // 8 bytes - Total SOL locked
+    pub total_debt: u64,                // 8 bytes - Total VUSD minted
+    pub base_rate: u64,                 // 8 bytes - Reserved for dynamic fees
+    pub last_fee_operation_time: i64,   // 8 bytes - Timestamp
+    pub total_positions: u64,           // 8 bytes - Position counter
+    pub bump: u8,                       // 1 byte - PDA bump
+}
+```
+
+**Key Fields**:
+- `total_collateral`: Sum of all position collateral (lamports)
+- `total_debt`: Sum of all position debt (6 decimals)
+- `total_positions`: Number of positions ever created
+
+### 2. Position
+
+**Purpose**: Represents a user's CDP.
+
+**PDA Seeds**: `["position", user_pubkey]`
+
+**Size**: 58 bytes
+
+```rust
+pub struct Position {
+    pub owner: Pubkey,              // 32 bytes - Position owner
+    pub collateral: u64,            // 8 bytes - SOL locked (lamports)
+    pub debt: u64,                  // 8 bytes - VUSD owed (6 decimals)
+    pub status: PositionStatus,     // 1 byte - Active/Closed/Liquidated
+    pub bump: u8,                   // 1 byte - PDA bump
+}
+
+pub enum PositionStatus {
+    Active = 0,
+    Closed = 1,
+    Liquidated = 2,
+}
+```
+
+**Helper Methods**:
+```rust
+impl Position {
+    /// Calculate collateral ratio in basis points (10000 = 100%)
+    pub fn collateral_ratio(&self, sol_price: u64) -> u64 {
+        let collateral_value_usd = (self.collateral as u128)
+            .checked_mul(sol_price as u128)
+            .unwrap()
+            .checked_div(1_000_000_000) // Convert lamports to SOL
+            .unwrap();
+
+        let debt_usd = self.debt as u128;
+
+        ((collateral_value_usd * 10000) / debt_usd) as u64
+    }
+}
+```
+
+### 3. StabilityPool
+
+**Purpose**: Manages the protocol's stability pool.
+
+**PDA Seeds**: `["stability-pool"]`
+
+**Size**: 57 bytes
+
+```rust
+pub struct StabilityPool {
+    pub total_vusd_deposited: u64,  // 8 bytes - Total VUSD in pool
+    pub total_sol_rewards: u64,     // 8 bytes - SOL from liquidations
+    pub product_snapshot: u128,     // 16 bytes - For reward calculations
+    pub epoch: u64,                 // 8 bytes - Liquidation counter
+    pub bump: u8,                   // 1 byte - PDA bump
+}
+```
+
+### 4. StabilityDeposit
+
+**Purpose**: Tracks individual user deposits in the Stability Pool.
+
+**PDA Seeds**: `["stability-deposit", depositor_pubkey]`
+
+**Size**: 81 bytes
+
+```rust
+pub struct StabilityDeposit {
+    pub depositor: Pubkey,          // 32 bytes - Depositor address
+    pub amount: u64,                // 8 bytes - VUSD deposited
+    pub sol_reward_earned: u64,     // 8 bytes - SOL rewards
+    pub product_snapshot: u128,     // 16 bytes - Snapshot at deposit
+    pub epoch_snapshot: u64,        // 8 bytes - Epoch at deposit
+    pub bump: u8,                   // 1 byte - PDA bump
+}
+```
+
+## Instructions
+
+v1ta provides 8 instructions for interacting with the protocol.
+
+### 1. Initialize
+
+**Purpose**: One-time protocol setup.
+
+**Accounts**:
+- `authority` - Protocol admin (signer)
+- `global_state` - GlobalState PDA (init)
+- `vusd_mint` - VUSD token mint (init)
+- `stability_pool` - StabilityPool PDA (init)
+- `vault` - Protocol SOL vault (init)
+- `system_program`, `token_program`, `rent`
+
+**Logic**:
+1. Creates VUSD mint with authority as mint authority
+2. Initializes GlobalState with admin
+3. Creates Stability Pool
+4. Sets up protocol vault
+
+### 2. Open Position
+
+**Purpose**: Create a CDP by depositing SOL and minting VUSD.
+
+**Parameters**:
+```rust
+pub struct OpenPositionParams {
+    pub collateral_amount: u64,  // Lamports to deposit
+    pub vusd_to_mint: u64,       // VUSD to borrow (6 decimals)
+}
+```
+
+**Accounts**:
+- `user` - Position owner (signer)
+- `position` - Position PDA (init)
+- `global_state` - GlobalState (mut)
+- `vusd_mint` - VUSD mint (mut)
+- `user_vusd_account` - User's VUSD token account (mut)
+- `price_feed` - Pyth SOL/USD feed
+- Others...
+
+**Validation**:
+1. Check collateral_amount > 0
+2. Check vusd_to_mint >= 1 VUSD
+3. Fetch SOL price from Pyth
+4. Calculate collateral ratio with 0.5% fee
+5. Ensure CR >= 110%
+
+**Effects**:
+1. Transfer SOL from user to vault
+2. Calculate borrow fee (0.5%)
+3. Mint VUSD to user
+4. Create Position account
+5. Update GlobalState totals
+
+### 3. Adjust Position
+
+**Purpose**: Modify existing CDP (add/remove collateral or debt).
+
+**Parameters**:
+```rust
+pub struct AdjustPositionParams {
+    pub collateral_change: u64,
+    pub is_collateral_increase: bool,
+    pub debt_change: u64,
+    pub is_debt_increase: bool,
+}
+```
+
+**Operations Supported**:
+- Add collateral
+- Remove collateral
+- Borrow more VUSD
+- Repay VUSD
+
+**Validation**:
+1. Position must be Active
+2. After changes, CR >= 110%
+3. Debt >= 1 VUSD (or 0 if closing)
+4. Sufficient balances
+
+### 4. Close Position
+
+**Purpose**: Fully repay debt and withdraw all collateral.
+
+**Logic**:
+1. Burn all debt from user's VUSD account
+2. Transfer all collateral to user
+3. Mark position as Closed
+4. Update GlobalState totals
+
+### 5. Liquidate
+
+**Purpose**: Close positions with CR < 110%.
+
+**Eligibility**: Any position with CR < 110%
+
+**Process**:
+1. Verify CR < 110%
+2. Calculate liquidation penalty (5%)
+3. Repay debt from Stability Pool
+4. Transfer collateral to Stability Pool
+5. Reward liquidator (0.5%)
+6. Mark position as Liquidated
+
+### 6. Redeem
+
+**Purpose**: Burn VUSD for $1 worth of SOL.
+
+**Parameters**:
+```rust
+pub struct RedeemParams {
+    pub vusd_amount: u64,  // VUSD to redeem (6 decimals)
+}
+```
+
+**Logic**:
+1. Burn VUSD from user
+2. Calculate SOL equivalent at current price
+3. Apply 0.5% redemption fee
+4. Transfer SOL from vault to user
+
+<Callout type="warning">
+  **Note**: Current implementation redeems from vault, not individual positions. This will be updated to redeem from lowest CR positions.
+</Callout>
+
+### 7. Deposit Stability
+
+**Purpose**: Provide VUSD to the Stability Pool.
+
+**Parameters**:
+```rust
+pub struct DepositStabilityParams {
+    pub amount: u64,  // VUSD to deposit (6 decimals)
+}
+```
+
+**Logic**:
+1. Transfer VUSD from user to pool
+2. Create StabilityDeposit account
+3. Update StabilityPool totals
+4. Record snapshots for reward calculation
+
+### 8. Withdraw Stability
+
+**Purpose**: Withdraw VUSD and SOL rewards from Stability Pool.
+
+**Logic**:
+1. Calculate user's share of pool
+2. Calculate SOL rewards earned
+3. Transfer VUSD back to user
+4. Transfer SOL rewards to user
+5. Close StabilityDeposit account
+
+## Oracle Integration
+
+### Pyth Network
+
+v1ta uses Pyth for real-time SOL/USD price feeds.
+
+**Feed Configuration**:
+```
+Network: Devnet
+Feed ID: J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix
+Asset: SOL/USD
+Precision: 8 decimals
+Max Age: 60 seconds
+```
+
+**Price Validation**:
+```rust
+fn get_sol_price(price_feed: &AccountInfo) -> Result<u64> {
+    let price_data = load_price_feed_from_account_info(price_feed)?;
+    let current_timestamp = Clock::get()?.unix_timestamp;
+
+    // Check staleness
+    require!(
+        price_data.publish_time >= current_timestamp - 60,
+        ErrorCode::OraclePriceStale
+    );
+
+    // Get price with confidence
+    let price = price_data.get_price_unchecked();
+
+    // Price is in format: price ± conf
+    // Convert from i64 to u64 and scale appropriately
+    Ok(price.price as u64)
+}
+```
+
+## Security Mechanisms
+
+### Access Control
+
+- **Authority**: Admin account can initialize protocol only
+- **Users**: Can only modify their own positions
+- **Liquidators**: Anyone can liquidate any unhealthy position
+
+### Validation Checks
+
+Every instruction validates:
+1. **Account ownership**: Correct program owns accounts
+2. **PDA derivation**: PDAs match expected seeds
+3. **Signer requirements**: Required signatures present
+4. **State transitions**: Valid state changes
+5. **Math operations**: No overflow/underflow
+6. **Price freshness**: Oracle data not stale
+7. **Collateral ratio**: Maintained above 110%
+
+### Precision Handling
+
+To prevent overflow and maintain precision:
+
+```rust
+// Example: CR calculation with scaling
+fn calculate_cr(collateral: u64, debt: u64, price: u64) -> u64 {
+    // All amounts in u128 to prevent overflow
+    let col_value = (collateral as u128) * (price as u128) / 1e9;
+    let debt_value = debt as u128;
+
+    // Result in basis points (10000 = 100%)
+    ((col_value * 10000) / debt_value) as u64
+}
+```
+
+**Decimal Precision**:
+- SOL: 9 decimals (lamports)
+- VUSD: 6 decimals
+- Prices: 8 decimals (Pyth standard)
+- CR: Basis points (10000 = 100%)
+
+## Known Issues
+
+<Callout type="error">
+  **Development Status**: v1ta is in early devnet testing with known bugs. Do not use with real funds.
+</Callout>
+
+### Critical Issues
+
+1. **adjust_position Bug**: Line 256 overwrites total_collateral instead of updating it
+2. **Liquidation Transfer**: Attempts VUSD transfer to data account instead of token account
+3. **Redemption Mechanism**: Doesn't redeem against actual positions
+4. **Stability Rewards**: Never distributed (`sol_reward_earned` never updated)
+5. **Deposit Stability Init**: Users can only deposit once due to `init` constraint
+
+See [Security](/docs/technical/security) for full details and mitigation plans.
+
+## Performance Considerations
+
+### Transaction Costs
+
+Approximate costs (Devnet):
+- Initialize: ~0.01 SOL (one-time)
+- Open Position: ~0.0005 SOL
+- Adjust Position: ~0.0003 SOL
+- Close Position: ~0.0003 SOL
+- Liquidate: ~0.0005 SOL
+
+### Compute Units
+
+Typical compute unit usage:
+- Open Position: ~150k CU
+- Adjust Position: ~100k CU
+- Liquidate: ~200k CU
+
+All operations well within Solana's 1.4M CU limit per transaction.
+
+### Scaling
+
+The protocol can handle:
+- **Positions**: Millions (limited only by Solana throughput)
+- **Liquidations**: Parallel processing by multiple bots
+- **Price Updates**: Real-time Pyth feeds
+
+## Deployment
+
+### Build
+
+```bash
+anchor build
+```
+
+### Test
+
+```bash
+anchor test
+```
+
+### Deploy
+
+```bash
+# Devnet
+anchor deploy --provider.cluster devnet
+
+# Mainnet (when ready)
+anchor deploy --provider.cluster mainnet
+```
+
+### Initialize
+
+```typescript
+await program.methods
+  .initialize()
+  .accounts({
+    authority: admin.publicKey,
+    // ... other accounts
+  })
+  .rpc();
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Smart Contracts"
+    description="Detailed breakdown of each instruction"
+    href="/docs/technical/smart-contracts"
+  />
+  <Card
+    title="State Accounts"
+    description="Deep dive into state management"
+    href="/docs/technical/state-accounts"
+  />
+  <Card
+    title="Security"
+    description="Security analysis and best practices"
+    href="/docs/technical/security"
+  />
+</Cards>

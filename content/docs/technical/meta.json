@@ -1,0 +1,11 @@
+{
+  "title": "Technical",
+  "pages": [
+    "architecture",
+    "smart-contracts",
+    "state-accounts",
+    "instructions",
+    "oracles",
+    "security"
+  ]
+}

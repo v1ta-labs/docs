@@ -1,0 +1,133 @@
+---
+title: Introduction to v1ta
+description: The Decentralized Stablecoin of Solana
+icon: Home
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+# v1ta: The Decentralized Stablecoin of Solana
+
+<Callout type="info">
+  **Vision:** Stable money that no one can freeze, govern, or debase.
+</Callout>
+
+v1ta is the Solana-native, fully on-chain stablecoin — built for people who believe money should be trustless, efficient, and unstoppable.
+
+## The Problem
+
+Stablecoins aren't stable in principle anymore:
+
+- **USDC / USDT:** Centralized custodians, blacklist risk, TradFi exposure
+- **MakerDAO:** Governance committees, T-bills, and permissioned collateral
+- **Everything else:** Over-engineered or yield-farmed to death
+
+**DeFi has no pure, decentralized money left.**
+
+## The Solution
+
+v1ta is base-layer money for Solana, backed only by crypto.
+
+<Cards>
+  <Card
+    title="Decentralized"
+    description="Crypto-only collateral with no centralized bridges or stablecoins"
+    href="/docs/protocol/collateral"
+  />
+  <Card
+    title="Efficient"
+    description="110% collateral ratio with automated Stability Pool offsets"
+    href="/docs/protocol/cdp-mechanism"
+  />
+  <Card
+    title="Unstoppable"
+    description="Immutable smart contracts with no governance switches"
+    href="/docs/protocol/overview"
+  />
+</Cards>
+
+## Key Features
+
+### 110% Collateralization Ratio
+
+Borrow at just 110% collateral ratio. Lock $1000 SOL, borrow $909 VUSD. That's **11x better** than competitors at 150-200%.
+
+### Instant On-Chain Redemptions
+
+VUSD stays at $1 because anyone can redeem it for $1 worth of collateral. No governance votes. No manual tweaks. Just math.
+
+- When VUSD trades below $1, arbitragers buy it cheap and redeem for $1
+- When it trades above $1, people mint new VUSD at $1 and sell it higher
+
+### Built for Solana Speed
+
+- Sub-second transactions at pennies
+- Dual oracles (Pyth + Switchboard) with 60-second staleness detection
+- Compare that to hours of lag on Ethereum
+
+### LST Protection
+
+We calculate LST value using actual stake rates from staking contracts. Your position stays safe even when markets panic.
+
+## Quick Stats
+
+| Metric | Value |
+|--------|-------|
+| Min Collateral Ratio | 110% |
+| Borrow Fee | 0.5% |
+| Liquidation Penalty | 5% |
+| Supported Collateral | SOL, jitoSOL, mSOL (coming) |
+| Network | Solana |
+
+## Getting Started
+
+<Cards>
+  <Card
+    title="Protocol Overview"
+    description="Learn how v1ta works and why it's different"
+    href="/docs/protocol/overview"
+  />
+  <Card
+    title="Open a CDP"
+    description="Start borrowing VUSD against your SOL"
+    href="/docs/getting-started/open-position"
+  />
+  <Card
+    title="Technical Docs"
+    description="Deep dive into the smart contracts and architecture"
+    href="/docs/technical/architecture"
+  />
+  <Card
+    title="Developer Guide"
+    description="Build with v1ta - API references and integration guides"
+    href="/docs/developer/getting-started"
+  />
+</Cards>
+
+## Why v1ta?
+
+> "If USDC is Wall Street, v1ta is Bitcoin for stablecoins."
+
+- **Pure collateral.** Pure code. Pure Solana.
+- **Money without masters.**
+- **The last pure stablecoin.**
+
+## Ecosystem Integration
+
+v1ta is built on and integrated with Solana's leading DeFi protocols:
+
+- **marginfi**: Flash liquidity and composable credit layer
+- **Drift Protocol**: vUSD usable as collateral in perps & spot markets
+
+## Launch Phases
+
+1. **Devnet** — Core vault + Stability Pool + marginfi keeper demo
+2. **Testnet** — Add redemptions & Drift integration
+3. **Mainnet** — Audited, immutable contracts; ecosystem adoption
+
+---
+
+<Callout type="warning">
+  **Development Status:** v1ta is currently in devnet testing. Do not use with real funds.
+</Callout>

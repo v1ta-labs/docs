@@ -1,0 +1,549 @@
+---
+title: Drift Protocol Integration
+description: Use VUSD as collateral in Drift's perps and spot markets
+icon: TrendingUp
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Drift Protocol Integration
+
+v1ta's VUSD stablecoin is integrated with Drift Protocol, enabling users to use VUSD as collateral for perpetual futures and spot trading.
+
+## What is Drift?
+
+Drift is a decentralized exchange on Solana offering:
+
+- **Perpetual Futures**: Trade with up to 10x leverage
+- **Spot Markets**: Trade spot assets with cross-collateral
+- **Prediction Markets**: Bet on real-world events
+- **Capital Efficiency**: Use single collateral across all markets
+
+## VUSD in Drift
+
+### Collateral Asset
+
+VUSD can be used as collateral in Drift for:
+
+1. **Perpetual Futures Trading**: Up to 10x leverage
+2. **Spot Market Trading**: Cross-margin spot positions
+3. **Prediction Markets**: Participate in binary options
+4. **Liquidity Provision**: Provide liquidity to earn fees
+
+### Benefits
+
+- **Capital Efficiency**: Borrow VUSD from v1ta at 110% CR, trade with leverage on Drift
+- **No Sell Pressure**: Keep SOL exposure while trading
+- **Yield Opportunities**: Earn funding rates and trading fees
+- **Composability**: Combine v1ta borrowing with Drift trading strategies
+
+## Integration Architecture
+
+```
+┌────────────────────────────────────────────────────┐
+│                  User Wallet                        │
+└──────────┬─────────────────────────────────────────┘
+           │
+    ┌──────┴──────┐
+    ▼             ▼
+┌─────────┐   ┌────────────┐
+│  v1ta   │   │   Drift    │
+│         │   │            │
+│ Borrow  ├──►│ Use VUSD   │
+│ VUSD at │   │ for Perps  │
+│ 110% CR │   │ Trading    │
+└─────────┘   └────────────┘
+```
+
+## Use Cases
+
+### 1. Leveraged Long Position
+
+**Scenario**: Bullish on SOL, want maximum capital efficiency
+
+**Strategy**:
+1. Deposit SOL to v1ta (110% CR)
+2. Borrow VUSD
+3. Use VUSD as collateral on Drift
+4. Open leveraged SOL-PERP long
+
+**Result**: Stacked leverage on SOL exposure
+
+### 2. Delta-Neutral Yield
+
+**Scenario**: Want to earn yield without price exposure
+
+**Strategy**:
+1. Open v1ta CDP with SOL
+2. Borrow VUSD (0.5% flat fee, no interest)
+3. Deposit VUSD to Drift
+4. Short SOL-PERP to hedge
+5. Earn funding rates
+
+**Result**: Market-neutral position earning funding
+
+### 3. Arbitrage Trading
+
+**Scenario**: Exploit price differences between markets
+
+**Strategy**:
+1. Borrow VUSD from v1ta
+2. Use on Drift for instant arbitrage execution
+3. Repay v1ta loan
+4. Keep profit
+
+**Result**: Zero-capital arbitrage with borrowed VUSD
+
+## Code Examples
+
+### Basic Integration
+
+```typescript
+import { DriftClient } from '@drift-labs/sdk';
+import { V1taClient } from './v1ta-client';
+
+class V1taDriftIntegration {
+  private v1ta: Program;
+  private drift: DriftClient;
+
+  constructor(connection: Connection, wallet: Wallet) {
+    // Initialize v1ta
+    this.v1ta = new Program(/* ... */);
+
+    // Initialize Drift
+    this.drift = new DriftClient({
+      connection,
+      wallet: wallet.payer,
+      env: 'mainnet-beta',
+    });
+  }
+
+  /**
+   * Borrow VUSD from v1ta and deposit to Drift
+   */
+  async borrowAndTrade(
+    solCollateral: number,
+    vusdAmount: number,
+    perpMarket: number,
+    size: number
+  ) {
+    // 1. Open v1ta position
+    await this.v1ta.methods
+      .openPosition(
+        new BN(solCollateral),
+        new BN(vusdAmount)
+      )
+      .accounts({
+        // ... accounts
+      })
+      .rpc();
+
+    console.log('Borrowed VUSD from v1ta');
+
+    // 2. Deposit VUSD to Drift
+    await this.drift.deposit(
+      vusdAmount,
+      0, // Bank index for VUSD
+      this.drift.getUser().getUserAccountPublicKey()
+    );
+
+    console.log('Deposited VUSD to Drift');
+
+    // 3. Open perp position
+    await this.drift.openPosition(
+      perpMarket,
+      {
+        direction: PositionDirection.LONG,
+        baseAssetAmount: new BN(size),
+        marketType: MarketType.PERP,
+      }
+    );
+
+    console.log('Opened perp position');
+  }
+
+  /**
+   * Close position and repay v1ta
+   */
+  async closeAndRepay() {
+    // 1. Close Drift position
+    await this.drift.closePosition(
+      MARKET_INDEX
+    );
+
+    // 2. Withdraw VUSD from Drift
+    const vusdBalance = await this.drift.getUserBalance(VUSD_BANK);
+    await this.drift.withdraw(
+      vusdBalance,
+      VUSD_BANK
+    );
+
+    // 3. Close v1ta position
+    await this.v1ta.methods
+      .closePosition()
+      .accounts({
+        // ... accounts
+      })
+      .rpc();
+
+    console.log('Position fully closed');
+  }
+}
+```
+
+### Advanced: Delta-Neutral Strategy
+
+```typescript
+class DeltaNeutralStrategy {
+  private v1ta: Program;
+  private drift: DriftClient;
+
+  /**
+   * Create delta-neutral position to earn funding
+   */
+  async createDeltaNeutralPosition(
+    solAmount: number,
+    solPrice: number
+  ) {
+    // 1. Deposit SOL to v1ta
+    const vusdToBorrow = (solAmount * solPrice) / 1.105;
+
+    await this.v1ta.methods
+      .openPosition(
+        new BN(solAmount * 1e9),
+        new BN(vusdToBorrow * 1e6)
+      )
+      .rpc();
+
+    // 2. Deposit VUSD to Drift
+    await this.drift.deposit(
+      vusdToBorrow,
+      VUSD_BANK,
+      this.userAccount
+    );
+
+    // 3. Short SOL-PERP for same notional value
+    // This hedges the SOL collateral exposure
+    const perpSize = solAmount; // Same amount as collateral
+
+    await this.drift.openPosition(
+      SOL_PERP_MARKET,
+      {
+        direction: PositionDirection.SHORT,
+        baseAssetAmount: new BN(perpSize * 1e9),
+        marketType: MarketType.PERP,
+      }
+    );
+
+    console.log('Delta-neutral position created');
+
+    // Now earning funding rates without price exposure
+    return this.getPositionStatus();
+  }
+
+  /**
+   * Monitor and rebalance delta-neutral position
+   */
+  async rebalanceIfNeeded() {
+    // Get v1ta position
+    const [position] = getPositionPDA(this.wallet.publicKey);
+    const positionData = await this.v1ta.account.position.fetch(position);
+
+    // Get Drift position
+    const driftPosition = await this.drift.getUser().getPerpPosition(
+      SOL_PERP_MARKET
+    );
+
+    const solPrice = await this.getSolPrice();
+    const collateralValue = (positionData.collateral / 1e9) * solPrice;
+    const perpNotional = Math.abs(driftPosition.baseAssetAmount / 1e9 * solPrice);
+
+    const delta = Math.abs(collateralValue - perpNotional);
+    const deltaPercent = (delta / collateralValue) * 100;
+
+    // Rebalance if delta > 5%
+    if (deltaPercent > 5) {
+      console.log(`Rebalancing: ${deltaPercent}% delta`);
+
+      // Adjust perp position to match collateral value
+      const targetPerpSize = positionData.collateral / 1e9;
+      const currentPerpSize = Math.abs(driftPosition.baseAssetAmount / 1e9);
+      const sizeDiff = targetPerpSize - currentPerpSize;
+
+      if (Math.abs(sizeDiff) > 0.01) {
+        await this.drift.openPosition(
+          SOL_PERP_MARKET,
+          {
+            direction: sizeDiff > 0 ? PositionDirection.SHORT : PositionDirection.LONG,
+            baseAssetAmount: new BN(Math.abs(sizeDiff) * 1e9),
+            marketType: MarketType.PERP,
+          }
+        );
+      }
+    }
+  }
+
+  /**
+   * Calculate PnL including funding
+   */
+  async calculatePnL() {
+    const driftUser = this.drift.getUser();
+
+    // Get total PnL including funding
+    const unrealizedPnl = driftUser.getUnrealizedPNL();
+    const fundingPnl = driftUser.getUnrealizedFundingPNL();
+
+    // Get v1ta costs
+    const [position] = getPositionPDA(this.wallet.publicKey);
+    const positionData = await this.v1ta.account.position.fetch(position);
+    const borrowCost = (positionData.debt / 1e6) * 0.005; // 0.5% fee
+
+    return {
+      tradingPnl: unrealizedPnl,
+      fundingPnl,
+      borrowCost,
+      netPnl: unrealizedPnl + fundingPnl - borrowCost
+    };
+  }
+}
+```
+
+### Automated Trading Bot
+
+```typescript
+class V1taDriftTradingBot {
+  private v1ta: Program;
+  private drift: DriftClient;
+  private strategy: string;
+
+  async start() {
+    console.log('Starting trading bot...');
+
+    // Monitor markets
+    this.drift.eventEmitter.on('orderFill', async (fill) => {
+      await this.handleOrderFill(fill);
+    });
+
+    // Monitor v1ta position health
+    setInterval(async () => {
+      await this.checkPositionHealth();
+    }, 10000); // Check every 10s
+
+    // Monitor funding rates
+    setInterval(async () => {
+      await this.checkFundingRates();
+    }, 60000); // Check every minute
+  }
+
+  private async handleOrderFill(fill: OrderFillEvent) {
+    console.log('Order filled:', fill);
+    // Update position tracking
+  }
+
+  private async checkPositionHealth() {
+    const [position] = getPositionPDA(this.wallet.publicKey);
+    const positionData = await this.v1ta.account.position.fetch(position);
+
+    const solPrice = await this.getSolPrice();
+    const cr = this.calculateCR(positionData, solPrice);
+
+    if (cr < 120) {
+      console.warn('CR below 120%, reducing Drift leverage');
+      await this.reduceRisk();
+    }
+  }
+
+  private async checkFundingRates() {
+    const fundingRate = await this.drift.getFundingRate(SOL_PERP_MARKET);
+
+    console.log('Current funding rate:', fundingRate);
+
+    // Adjust position based on funding
+    if (Math.abs(fundingRate) > 0.01) {
+      console.log('High funding rate, adjusting strategy');
+      await this.adjustForFunding(fundingRate);
+    }
+  }
+
+  private async reduceRisk() {
+    // Reduce Drift position size
+    const currentPosition = await this.drift.getUser().getPerpPosition(SOL_PERP_MARKET);
+
+    await this.drift.closePosition(
+      SOL_PERP_MARKET,
+      {
+        baseAssetAmount: currentPosition.baseAssetAmount / 2, // Close 50%
+      }
+    );
+
+    // Or add collateral to v1ta
+    await this.v1ta.methods
+      .adjustPosition(
+        new BN(1e9), // Add 1 SOL
+        true,
+        new BN(0),
+        false
+      )
+      .rpc();
+  }
+}
+```
+
+## Risk Management
+
+<Callout type="warning">
+  Using VUSD on Drift adds additional leverage and risk. Manage carefully!
+</Callout>
+
+### Risk Factors
+
+1. **Double Liquidation Risk**
+   - v1ta: CR must stay > 110%
+   - Drift: Margin ratio must stay healthy
+   - Failure on either = liquidation
+
+2. **Leverage Amplification**
+   - Borrow at 110% from v1ta
+   - Trade with 10x on Drift
+   - Total leverage can exceed 90x
+
+3. **Funding Rate Risk**
+   - Negative funding can erode profits
+   - Must monitor and adjust positions
+
+### Risk Mitigation
+
+```typescript
+class RiskManager {
+  // Maximum leverage allowed
+  MAX_EFFECTIVE_LEVERAGE = 5;
+
+  // Minimum CR for v1ta position
+  MIN_V1TA_CR = 140; // 40% buffer
+
+  // Minimum margin ratio for Drift
+  MIN_DRIFT_MARGIN = 10; // 10%
+
+  async checkAllRisks() {
+    const v1taRisk = await this.checkV1taRisk();
+    const driftRisk = await this.checkDriftRisk();
+    const combinedRisk = await this.checkCombinedRisk();
+
+    if (v1taRisk.critical || driftRisk.critical || combinedRisk.critical) {
+      console.error('CRITICAL RISK DETECTED');
+      await this.emergencyCloseAll();
+    } else if (v1taRisk.warning || driftRisk.warning) {
+      console.warn('Warning: Risk elevated');
+      await this.reduceExposure();
+    }
+  }
+
+  private async checkV1taRisk() {
+    const cr = await this.getV1taCR();
+    return {
+      cr,
+      critical: cr < 115,
+      warning: cr < this.MIN_V1TA_CR
+    };
+  }
+
+  private async checkDriftRisk() {
+    const user = await this.drift.getUser();
+    const marginRatio = user.getFreeCollateral() / user.getTotalCollateral();
+
+    return {
+      marginRatio,
+      critical: marginRatio < 5,
+      warning: marginRatio < this.MIN_DRIFT_MARGIN
+    };
+  }
+
+  private async checkCombinedRisk() {
+    // Calculate effective leverage
+    const v1taCollateral = await this.getV1taCollateralValue();
+    const driftNotional = await this.getDriftNotional();
+
+    const effectiveLeverage = driftNotional / v1taCollateral;
+
+    return {
+      effectiveLeverage,
+      critical: effectiveLeverage > this.MAX_EFFECTIVE_LEVERAGE * 1.5,
+      warning: effectiveLeverage > this.MAX_EFFECTIVE_LEVERAGE
+    };
+  }
+
+  private async emergencyCloseAll() {
+    // 1. Close all Drift positions immediately (market orders)
+    await this.drift.closeAllPositions();
+
+    // 2. Withdraw VUSD from Drift
+    await this.drift.withdrawAll(VUSD_BANK);
+
+    // 3. Close v1ta position
+    await this.v1ta.methods.closePosition().rpc();
+  }
+}
+```
+
+## Best Practices
+
+1. **Start Small**
+   - Test with small positions first
+   - Understand both protocols deeply
+   - Practice on devnet
+
+2. **Monitor Constantly**
+   - Set up automated alerts
+   - Track CR on v1ta
+   - Track margin ratio on Drift
+   - Monitor funding rates
+
+3. **Maintain Buffers**
+   - Keep v1ta CR > 140%
+   - Keep Drift margin > 10%
+   - Have emergency VUSD/SOL ready
+
+4. **Understand Fees**
+   - v1ta: 0.5% borrow fee
+   - Drift: Trading fees + funding rates
+   - Calculate total costs before trading
+
+## Future Enhancements
+
+Planned improvements:
+
+1. **Direct CPI Integration**
+   - Atomic operations between v1ta and Drift
+   - Reduced transaction costs
+   - Better composability
+
+2. **Shared Liquidation Protection**
+   - Cross-protocol risk monitoring
+   - Coordinated liquidation prevention
+   - Unified health factor
+
+3. **Optimized Strategies**
+   - Pre-built strategy vaults
+   - One-click delta-neutral positions
+   - Automated risk management
+
+## Resources
+
+- [Drift Documentation](https://docs.drift.trade)
+- [Drift SDK](https://github.com/drift-labs/protocol-v2)
+- [Trading Examples](https://github.com/v1ta-labs/drift-examples)
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="marginfi Integration"
+    description="Learn about flash liquidity integration"
+    href="/docs/integrations/marginfi"
+  />
+  <Card
+    title="Developer Guide"
+    description="Build custom integrations"
+    href="/docs/developer/getting-started"
+  />
+</Cards>

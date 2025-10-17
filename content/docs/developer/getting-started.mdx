@@ -1,0 +1,488 @@
+---
+title: Developer Getting Started
+description: Build applications on top of v1ta protocol
+icon: Code2
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+# Developer Getting Started
+
+This guide will help you integrate v1ta into your application or build tools on top of the protocol.
+
+## Prerequisites
+
+- Node.js 18+ or Bun
+- TypeScript knowledge
+- Basic understanding of Solana development
+- Anchor framework familiarity
+
+## Installation
+
+<Steps>
+
+<Step>
+### Install Dependencies
+
+```bash
+npm install @coral-xyz/anchor @solana/web3.js @solana/spl-token
+# or
+bun add @coral-xyz/anchor @solana/web3.js @solana/spl-token
+```
+</Step>
+
+<Step>
+### Get the IDL
+
+Download the v1ta program IDL from the repository:
+
+```bash
+curl -o v1ta_devnet.json https://raw.githubusercontent.com/v1ta-protocol/v1ta-core/main/target/idl/v1ta_devnet.json
+```
+</Step>
+
+<Step>
+### Set Up Connection
+
+```typescript
+import { Connection, PublicKey } from '@solana/web3.js';
+import { AnchorProvider, Program } from '@coral-xyz/anchor';
+
+const connection = new Connection('https://api.devnet.solana.com');
+const programId = new PublicKey('D4PzAjCQtGL5n6b79fBJh5Z84GKJk1ruPCYn8914dsST');
+```
+</Step>
+
+</Steps>
+
+## Quick Example
+
+Here's a complete example of opening a position:
+
+```typescript
+import { Connection, PublicKey, Keypair } from '@solana/web3.js';
+import { AnchorProvider, Program, Wallet } from '@coral-xyz/anchor';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
+import IDL from './v1ta_devnet.json';
+
+async function openPosition() {
+  // Setup
+  const connection = new Connection('https://api.devnet.solana.com');
+  const wallet = new Wallet(Keypair.fromSecretKey(/* your key */));
+  const provider = new AnchorProvider(connection, wallet, {});
+
+  const programId = new PublicKey('D4PzAjCQtGL5n6b79fBJh5Z84GKJk1ruPCYn8914dsST');
+  const program = new Program(IDL, programId, provider);
+
+  // Derive PDAs
+  const [globalState] = PublicKey.findProgramAddressSync(
+    [Buffer.from('global-state')],
+    programId
+  );
+
+  const [position] = PublicKey.findProgramAddressSync(
+    [Buffer.from('position'), wallet.publicKey.toBuffer()],
+    programId
+  );
+
+  // Get accounts
+  const globalStateData = await program.account.globalState.fetch(globalState);
+  const vusdMint = globalStateData.vusdMint;
+  const vault = globalStateData.vault;
+
+  const userVusdAccount = getAssociatedTokenAddressSync(
+    vusdMint,
+    wallet.publicKey
+  );
+
+  // Pyth price feed
+  const priceFeed = new PublicKey('J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix');
+
+  // Open position: 1 SOL collateral, borrow 80 VUSD
+  const collateralAmount = 1_000_000_000; // 1 SOL in lamports
+  const vusdToMint = 80_000_000; // 80 VUSD (6 decimals)
+
+  const tx = await program.methods
+    .openPosition(
+      new BN(collateralAmount),
+      new BN(vusdToMint)
+    )
+    .accounts({
+      user: wallet.publicKey,
+      position,
+      globalState,
+      vusdMint,
+      userVusdAccount,
+      vault,
+      priceFeed,
+      systemProgram: SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+    })
+    .rpc();
+
+  console.log('Position opened:', tx);
+}
+```
+
+## Core Concepts
+
+### Program Derived Addresses (PDAs)
+
+v1ta uses PDAs for all state accounts. Here's how to derive them:
+
+```typescript
+import { PublicKey } from '@solana/web3.js';
+
+const PROGRAM_ID = new PublicKey('D4PzAjCQtGL5n6b79fBJh5Z84GKJk1ruPCYn8914dsST');
+
+// Global State PDA
+function getGlobalStatePDA(): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('global-state')],
+    PROGRAM_ID
+  );
+}
+
+// Position PDA
+function getPositionPDA(user: PublicKey): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('position'), user.toBuffer()],
+    PROGRAM_ID
+  );
+}
+
+// Stability Pool PDA
+function getStabilityPoolPDA(): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('stability-pool')],
+    PROGRAM_ID
+  );
+}
+
+// Stability Deposit PDA
+function getStabilityDepositPDA(depositor: PublicKey): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('stability-deposit'), depositor.toBuffer()],
+    PROGRAM_ID
+  );
+}
+```
+
+### Reading State
+
+```typescript
+// Fetch global state
+const [globalState] = getGlobalStatePDA();
+const globalStateData = await program.account.globalState.fetch(globalState);
+
+console.log('Total Collateral:', globalStateData.totalCollateral.toString());
+console.log('Total Debt:', globalStateData.totalDebt.toString());
+
+// Fetch user position
+const [position] = getPositionPDA(wallet.publicKey);
+try {
+  const positionData = await program.account.position.fetch(position);
+  console.log('Collateral:', positionData.collateral.toString());
+  console.log('Debt:', positionData.debt.toString());
+  console.log('Status:', positionData.status);
+} catch (e) {
+  console.log('No position exists');
+}
+
+// Calculate collateral ratio
+function calculateCR(collateral: BN, debt: BN, solPrice: number): number {
+  const collateralValue = collateral.toNumber() / 1e9 * solPrice;
+  const debtValue = debt.toNumber() / 1e6;
+  return (collateralValue / debtValue) * 100;
+}
+```
+
+### Instruction Examples
+
+#### Adjust Position
+
+```typescript
+// Add 0.5 SOL collateral
+await program.methods
+  .adjustPosition(
+    new BN(500_000_000), // 0.5 SOL
+    true,                 // is increase
+    new BN(0),           // no debt change
+    false
+  )
+  .accounts({
+    user: wallet.publicKey,
+    position,
+    globalState,
+    vault,
+    priceFeed,
+    // ...
+  })
+  .rpc();
+
+// Borrow 10 more VUSD
+await program.methods
+  .adjustPosition(
+    new BN(0),           // no collateral change
+    false,
+    new BN(10_000_000),  // 10 VUSD
+    true                 // is increase
+  )
+  .accounts({
+    user: wallet.publicKey,
+    position,
+    globalState,
+    vusdMint,
+    userVusdAccount,
+    priceFeed,
+    // ...
+  })
+  .rpc();
+```
+
+#### Close Position
+
+```typescript
+await program.methods
+  .closePosition()
+  .accounts({
+    user: wallet.publicKey,
+    position,
+    globalState,
+    vusdMint,
+    userVusdAccount,
+    vault,
+    tokenProgram: TOKEN_PROGRAM_ID,
+  })
+  .rpc();
+```
+
+#### Liquidate
+
+```typescript
+// Liquidate an unhealthy position
+const targetPosition = new PublicKey('...');
+
+await program.methods
+  .liquidate()
+  .accounts({
+    liquidator: wallet.publicKey,
+    position: targetPosition,
+    globalState,
+    stabilityPool,
+    vusdMint,
+    priceFeed,
+    // ...
+  })
+  .rpc();
+```
+
+## Helper Functions
+
+### Price Fetching
+
+```typescript
+import { Connection, PublicKey } from '@solana/web3.js';
+import { PriceServiceConnection } from '@pythnetwork/pyth-solana-receiver';
+
+async function getSolPrice(connection: Connection): Promise<number> {
+  const PRICE_FEED = new PublicKey('J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix');
+
+  const priceAccount = await connection.getAccountInfo(PRICE_FEED);
+  // Parse Pyth price data
+  // Returns price with 8 decimals
+
+  return price;
+}
+```
+
+### Position Health Check
+
+```typescript
+async function checkPositionHealth(
+  program: Program,
+  user: PublicKey,
+  connection: Connection
+): Promise<{ cr: number; healthy: boolean }> {
+  const [position] = getPositionPDA(user);
+  const positionData = await program.account.position.fetch(position);
+
+  const solPrice = await getSolPrice(connection);
+  const cr = calculateCR(positionData.collateral, positionData.debt, solPrice);
+
+  return {
+    cr,
+    healthy: cr >= 110
+  };
+}
+```
+
+### Gas Estimation
+
+```typescript
+async function estimateGas(
+  connection: Connection,
+  transaction: Transaction
+): Promise<number> {
+  const { value } = await connection.simulateTransaction(transaction);
+  return value.unitsConsumed || 0;
+}
+```
+
+## Common Patterns
+
+### Transaction Builders
+
+```typescript
+class V1taClient {
+  constructor(
+    private program: Program,
+    private wallet: Wallet
+  ) {}
+
+  async openPosition(collateral: number, vusdAmount: number) {
+    // Build and send transaction
+    return this.program.methods
+      .openPosition(new BN(collateral), new BN(vusdAmount))
+      .accounts({
+        // ... accounts
+      })
+      .rpc();
+  }
+
+  async getPosition(user?: PublicKey): Promise<Position | null> {
+    const [position] = getPositionPDA(user || this.wallet.publicKey);
+    try {
+      return await this.program.account.position.fetch(position);
+    } catch {
+      return null;
+    }
+  }
+
+  async getCollateralRatio(user?: PublicKey): Promise<number> {
+    const position = await this.getPosition(user);
+    if (!position) return 0;
+
+    const price = await this.getSolPrice();
+    return calculateCR(position.collateral, position.debt, price);
+  }
+}
+```
+
+### Event Listening
+
+```typescript
+// Listen for position events
+program.addEventListener('PositionOpened', (event, slot) => {
+  console.log('Position opened:', {
+    owner: event.owner.toString(),
+    collateral: event.collateral.toString(),
+    debt: event.debt.toString(),
+    slot
+  });
+});
+
+program.addEventListener('PositionLiquidated', (event, slot) => {
+  console.log('Position liquidated:', {
+    owner: event.owner.toString(),
+    liquidator: event.liquidator.toString(),
+    slot
+  });
+});
+```
+
+## Error Handling
+
+```typescript
+import { AnchorError } from '@coral-xyz/anchor';
+
+try {
+  await program.methods.openPosition(/* ... */).rpc();
+} catch (error) {
+  if (error instanceof AnchorError) {
+    console.error('Anchor Error:', error.error.errorCode.code);
+    console.error('Error Message:', error.error.errorMessage);
+
+    // Handle specific errors
+    switch (error.error.errorCode.code) {
+      case 'InsufficientCollateral':
+        console.error('Collateral ratio too low');
+        break;
+      case 'OraclePriceStale':
+        console.error('Price feed is outdated');
+        break;
+      // ... more cases
+    }
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+```
+
+## Testing
+
+```typescript
+import { BankrunProvider } from 'anchor-bankrun';
+
+describe('v1ta', () => {
+  it('opens a position', async () => {
+    // Setup test environment
+    const context = await startAnchor(/* ... */);
+    const provider = new BankrunProvider(context);
+    const program = new Program(IDL, programId, provider);
+
+    // Test logic
+    await program.methods
+      .openPosition(new BN(1_000_000_000), new BN(80_000_000))
+      .rpc();
+
+    // Assertions
+    const [position] = getPositionPDA(provider.wallet.publicKey);
+    const positionData = await program.account.position.fetch(position);
+
+    expect(positionData.collateral.toNumber()).toBe(1_000_000_000);
+  });
+});
+```
+
+## Best Practices
+
+<Callout type="info">
+  Follow these guidelines for robust integrations:
+</Callout>
+
+1. **Always validate PDAs**: Ensure you're deriving addresses correctly
+2. **Handle errors gracefully**: Account for all error cases
+3. **Check account existence**: Positions might not exist
+4. **Validate price feeds**: Ensure oracle data is fresh
+5. **Use transactions wisely**: Batch operations when possible
+6. **Test thoroughly**: Use devnet extensively before mainnet
+
+## Resources
+
+- [IDL Reference](/docs/developer/sdk-reference)
+- [Code Examples](/docs/developer/examples)
+- [Testing Guide](/docs/developer/testing)
+- [GitHub Repository](https://github.com/v1ta-labs/v1ta-core)
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="SDK Reference"
+    description="Complete API documentation"
+    href="/docs/developer/sdk-reference"
+  />
+  <Card
+    title="Examples"
+    description="More code examples and use cases"
+    href="/docs/developer/examples"
+  />
+  <Card
+    title="Integration Guides"
+    description="Integrate with marginfi and Drift"
+    href="/docs/integrations/marginfi"
+  />
+</Cards>

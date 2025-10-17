@@ -1,0 +1,438 @@
+---
+title: CDP Mechanism
+description: How Collateralized Debt Positions work in v1ta
+icon: Vault
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# CDP Mechanism
+
+A Collateralized Debt Position (CDP) is your personal vault in the v1ta protocol. This guide explains how CDPs work and how to manage them effectively.
+
+## What is a CDP?
+
+A CDP is a smart contract account that holds:
+
+1. **Your collateral** (SOL or LSTs)
+2. **Your debt** (VUSD you've borrowed)
+3. **Position metadata** (owner, status, etc.)
+
+**One CDP per wallet address** - all your activity is managed through a single position.
+
+## CDP Lifecycle
+
+### 1. Opening a Position
+
+To open a CDP, you must:
+
+- Deposit collateral (SOL)
+- Borrow at least 1 VUSD
+- Maintain CR ≥ 110%
+
+**Formula:**
+```
+Max Borrowable = (Collateral Value USD / 1.105) - 0.5% fee
+```
+
+The 1.105 ensures you start with >110% CR after the 0.5% borrow fee.
+
+**Example:**
+```
+Collateral: 10 SOL @ $100/SOL = $1,000
+Max Borrowable: $1,000 / 1.105 = $904.98
+After 0.5% fee: $904.98 - ($904.98 × 0.005) = $900.46
+Initial CR: ($1,000 / $900.46) × 100 = 111.1%
+```
+
+<Callout type="info">
+  The borrow fee is added to your debt, so your actual debt will be slightly higher than the VUSD you receive.
+</Callout>
+
+### 2. Active State
+
+While your position is active, you can:
+
+- **Add collateral**: Improve your CR
+- **Remove collateral**: Lower your CR (must stay ≥110%)
+- **Borrow more**: Increase debt (must maintain ≥110% CR)
+- **Repay debt**: Reduce debt and improve CR
+
+Your position must always maintain:
+- **CR ≥ 110%**
+- **Debt ≥ 1 VUSD** (unless closing completely)
+
+### 3. Position Adjustments
+
+You can adjust your position with four operations:
+
+#### Add Collateral
+
+```typescript
+// Add 5 SOL to your position
+await adjustPosition({
+  collateralChange: 5 * LAMPORTS_PER_SOL,
+  isCollateralIncrease: true,
+  debtChange: 0,
+  isDebtIncrease: false,
+});
+```
+
+**Effects:**
+- Increases collateral
+- Improves CR
+- No fees
+
+#### Remove Collateral
+
+```typescript
+// Remove 2 SOL from your position
+await adjustPosition({
+  collateralChange: 2 * LAMPORTS_PER_SOL,
+  isCollateralIncrease: false,
+  debtChange: 0,
+  isDebtIncrease: false,
+});
+```
+
+**Effects:**
+- Decreases collateral
+- Lowers CR
+- Must maintain CR ≥ 110%
+
+#### Borrow More
+
+```typescript
+// Borrow 100 more VUSD
+await adjustPosition({
+  collateralChange: 0,
+  isCollateralIncrease: false,
+  debtChange: 100 * 1e6, // VUSD has 6 decimals
+  isDebtIncrease: true,
+});
+```
+
+**Effects:**
+- Increases debt
+- Lowers CR
+- 0.5% borrow fee applied
+- Must maintain CR ≥ 110%
+
+#### Repay Debt
+
+```typescript
+// Repay 50 VUSD
+await adjustPosition({
+  collateralChange: 0,
+  isCollateralIncrease: false,
+  debtChange: 50 * 1e6,
+  isDebtIncrease: false,
+});
+```
+
+**Effects:**
+- Decreases debt
+- Improves CR
+- No fees
+- Burns VUSD from your wallet
+
+### 4. Closing a Position
+
+To close your position:
+
+1. Repay all debt (burns VUSD from your wallet)
+2. Receive all collateral back
+3. Position marked as "Closed"
+
+```typescript
+await closePosition();
+```
+
+<Callout type="warning">
+  Once closed, you can open a new position, but the old position data remains for historical tracking.
+</Callout>
+
+### 5. Liquidation
+
+If CR falls below 110%, anyone can liquidate your position:
+
+1. Entire debt repaid from Stability Pool
+2. All collateral transferred to Stability Pool depositors
+3. 5% liquidation penalty applied
+4. Position marked as "Liquidated"
+
+See [Liquidations](/docs/protocol/liquidations) for details.
+
+## Collateral Ratio Management
+
+### Calculating Your CR
+
+```
+CR = (Collateral Value USD / Debt VUSD) × 100%
+```
+
+**Example:**
+- Collateral: 10 SOL @ $100 = $1,000
+- Debt: 800 VUSD
+- CR = ($1,000 / $800) × 100 = 125%
+
+### CR Health Ranges
+
+| CR Range | Status | Risk Level | Action |
+|----------|--------|------------|--------|
+| 200%+ | Very Healthy | Very Low | Safe, high buffer |
+| 150-200% | Healthy | Low | Good buffer |
+| 130-150% | Moderate | Medium | Monitor price |
+| 110-130% | At Risk | High | Add collateral soon |
+| < 110% | Liquidatable | Critical | **Immediate liquidation risk** |
+
+### Factors Affecting CR
+
+Your CR changes when:
+
+1. **SOL price moves**
+   - Price drops → CR decreases
+   - Price rises → CR increases
+
+2. **You adjust your position**
+   - Add collateral → CR increases
+   - Remove collateral → CR decreases
+   - Borrow more → CR decreases
+   - Repay debt → CR increases
+
+3. **Redemptions** (rare)
+   - Your debt may be partially redeemed
+   - Both debt and collateral decrease proportionally
+   - CR remains roughly the same
+
+## Best Practices
+
+### 1. Maintain a Buffer
+
+<Callout type="warning">
+  **Never operate at exactly 110% CR.** Always maintain a buffer for price volatility.
+</Callout>
+
+Recommended minimums:
+- **Conservative**: 150%+ CR
+- **Moderate**: 130-150% CR
+- **Aggressive**: 120-130% CR
+
+### 2. Monitor Price Movements
+
+SOL price affects your CR directly:
+
+```
+New CR = Old CR × (New Price / Old Price)
+```
+
+**Example:**
+- Current: 10 SOL @ $100, 800 VUSD debt, CR = 125%
+- SOL drops to $90
+- New CR = 125% × ($90 / $100) = 112.5%
+
+A 10% price drop = 10% CR drop.
+
+### 3. Plan for Volatility
+
+During high volatility:
+- Keep CR higher (150%+)
+- Have VUSD ready to repay if needed
+- Set up price alerts
+- Monitor your position multiple times per day
+
+### 4. Understand the Borrow Fee
+
+Every time you borrow (or borrow more), a 0.5% fee is added to your debt:
+
+```
+Actual Debt = Borrowed Amount × 1.005
+```
+
+**Example:**
+- You borrow 1000 VUSD
+- Fee: 1000 × 0.005 = 5 VUSD
+- Total debt: 1005 VUSD
+
+### 5. Redemption Risk
+
+CDPs with the lowest CR are first in line for redemptions:
+
+- Not a liquidation (you keep most value)
+- But your position size decreases
+- Keep CR higher to avoid redemptions
+
+## Advanced Strategies
+
+### Leverage Trading
+
+<Callout type="warning">
+  **High risk strategy.** Only for experienced users.
+</Callout>
+
+1. Deposit SOL collateral
+2. Borrow maximum VUSD
+3. Swap VUSD for more SOL
+4. Deposit new SOL as collateral
+5. Repeat (carefully!)
+
+**Risk**: If SOL price drops, you can get liquidated quickly.
+
+### Yield Farming with Leverage
+
+1. Open a CDP with LST collateral (jitoSOL, mSOL)
+2. Borrow VUSD
+3. Use VUSD in other DeFi protocols
+4. Earn yield on both LST staking and VUSD deployment
+
+**Benefits:**
+- Earn staking yield on collateral
+- Earn yield on borrowed VUSD
+- Stay capital efficient
+
+### Stability Pool + CDP Combo
+
+1. Open a CDP and borrow VUSD
+2. Deposit some VUSD in Stability Pool
+3. Earn liquidation rewards
+4. Use rewards to repay debt or add collateral
+
+## Technical Details
+
+### Position Account Structure
+
+```rust
+pub struct Position {
+    pub owner: Pubkey,           // Position owner
+    pub collateral: u64,         // Lamports of SOL
+    pub debt: u64,               // VUSD with 6 decimals
+    pub status: PositionStatus,  // Active/Closed/Liquidated
+    pub bump: u8,                // PDA bump seed
+}
+```
+
+### PDA Derivation
+
+Each position is a Program Derived Address:
+
+```
+PDA = find_program_address(
+    seeds: ["position", user_pubkey],
+    program_id: V1TA_PROGRAM_ID
+)
+```
+
+### Precision
+
+- **Collateral**: u64 lamports (9 decimals)
+- **Debt**: u64 with 6 decimals
+- **CR Calculation**: Scaled to prevent overflow
+
+```rust
+// Internal CR calculation (basis points)
+fn collateral_ratio(&self, price: u64) -> u64 {
+    let collateral_value = self.collateral * price / 1e9;
+    let debt_value = self.debt;
+    (collateral_value * 10000) / debt_value
+}
+```
+
+## Common Scenarios
+
+### Scenario 1: Price Drop Recovery
+
+**Situation**: SOL drops 15%, your CR falls from 140% to 119%.
+
+**Options:**
+1. **Add collateral**: Deposit more SOL to boost CR
+2. **Repay debt**: Burn VUSD to reduce debt
+3. **Do nothing**: If 119% is acceptable risk
+4. **Close position**: Repay all debt and withdraw
+
+### Scenario 2: Taking Profits
+
+**Situation**: SOL price doubled, your CR is now 280%.
+
+**Options:**
+1. **Borrow more**: Take advantage of higher collateral value
+2. **Remove collateral**: Take some SOL off the table
+3. **Maintain**: Keep high CR for safety
+4. **Close**: Exit position entirely
+
+### Scenario 3: Approaching Liquidation
+
+**Situation**: SOL drops, your CR is at 112%.
+
+**Immediate actions:**
+1. **Add collateral** (fastest)
+2. **Repay some debt**
+3. **Both** (most effective)
+
+<Callout type="error">
+  **DO NOT wait!** Liquidation happens automatically when CR < 110%. Act immediately.
+</Callout>
+
+## Comparison: CDP vs Traditional Lending
+
+| Feature | v1ta CDP | Traditional Lending |
+|---------|----------|---------------------|
+| Collateral Ratio | 110% | 150-200% |
+| Interest | None (0.5% flat fee) | Variable APR |
+| Liquidation | 5% penalty | 5-15% penalty |
+| Asset Borrowed | VUSD (stablecoin) | Various |
+| Repayment Flexibility | Anytime, no penalty | Sometimes penalties |
+| Governance Risk | None (immutable) | DAO can change terms |
+
+## FAQ
+
+### Can I have multiple CDPs?
+
+No, one CDP per wallet address. But you can manage everything through that one position.
+
+### What happens if I get liquidated?
+
+Your position is closed, debt is repaid from Stability Pool, and collateral goes to SP depositors. You lose the 5% liquidation penalty but keep any remaining value.
+
+### Can I transfer my CDP to another wallet?
+
+No, CDPs are bound to the wallet that created them.
+
+### How often should I check my CR?
+
+- During normal markets: Once per day
+- During volatile markets: Multiple times per day
+- Set up automated alerts for CR thresholds
+
+### What's better: high CR or high utilization?
+
+**High CR** (low utilization):
+- Safer
+- Less liquidation risk
+- Less capital efficient
+
+**High utilization** (low CR):
+- Riskier
+- More capital efficient
+- Requires active management
+
+Choose based on your risk tolerance and time commitment.
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Open a Position"
+    description="Step-by-step guide to opening your first CDP"
+    href="/docs/getting-started/open-position"
+  />
+  <Card
+    title="Liquidations"
+    description="Understand how liquidations work"
+    href="/docs/protocol/liquidations"
+  />
+  <Card
+    title="Collateral Types"
+    description="Learn about supported collateral"
+    href="/docs/protocol/collateral"
+  />
+</Cards>

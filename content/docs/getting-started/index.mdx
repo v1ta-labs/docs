@@ -1,0 +1,154 @@
+---
+title: Getting Started with v1ta
+description: Learn how to use v1ta to mint VUSD against your SOL collateral
+icon: Rocket
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+# Getting Started with v1ta
+
+Welcome to v1ta! This guide will walk you through everything you need to know to start using the protocol.
+
+## What You Can Do
+
+With v1ta, you can:
+
+- **Open a CDP (Collateralized Debt Position)**: Deposit SOL and mint VUSD stablecoin
+- **Manage Your Position**: Add/remove collateral or borrow more VUSD
+- **Close Your Position**: Repay your debt and retrieve your collateral
+- **Provide Liquidity**: Deposit VUSD in the Stability Pool to earn rewards
+
+## Prerequisites
+
+Before you start, make sure you have:
+
+- A Solana wallet (Phantom, Solflare, or any compatible wallet)
+- SOL tokens for collateral and transaction fees
+- Basic understanding of collateralized lending
+
+<Callout type="info">
+  **New to DeFi?** Don't worry! We'll explain everything step by step.
+</Callout>
+
+## Quick Start
+
+<Steps>
+
+<Step>
+### Connect Your Wallet
+
+Visit [v1ta.xyz](https://v1ta.xyz) and connect your Solana wallet.
+
+Make sure you're on the correct network (Devnet for testing, Mainnet for production).
+</Step>
+
+<Step>
+### Understand the Basics
+
+Learn about:
+- **Collateral Ratio**: The ratio of your collateral value to your debt (must be ≥ 110%)
+- **Liquidation**: What happens when your collateral ratio falls below 110%
+- **Fees**: 0.5% borrow fee, 5% liquidation penalty
+</Step>
+
+<Step>
+### Open Your First Position
+
+Deposit SOL collateral and mint VUSD. See the [Open a Position](/docs/getting-started/open-position) guide for detailed instructions.
+</Step>
+
+<Step>
+### Monitor Your Position
+
+Keep an eye on:
+- Your collateral ratio (stay above 110%!)
+- SOL price movements
+- Your debt amount
+</Step>
+
+</Steps>
+
+## Key Concepts
+
+### Collateral Ratio
+
+Your collateral ratio is calculated as:
+
+```
+Collateral Ratio = (Collateral Value in USD) / (Debt in VUSD) × 100
+```
+
+**Example:**
+- You deposit 10 SOL (worth $1,000)
+- You borrow 800 VUSD
+- Your collateral ratio = ($1,000 / $800) × 100 = 125%
+
+<Callout type="warning">
+  **Important:** Always maintain a collateral ratio above 110% to avoid liquidation.
+</Callout>
+
+### Minimum Collateral Ratio: 110%
+
+v1ta's 110% minimum collateral ratio is the most capital-efficient in DeFi:
+
+| Protocol | Min CR | Your $1000 Borrow |
+|----------|--------|-------------------|
+| v1ta | 110% | $1,100 collateral |
+| Competitor A | 150% | $1,500 collateral |
+| Competitor B | 200% | $2,000 collateral |
+
+### Liquidation
+
+If your collateral ratio falls below 110%:
+
+1. Anyone can liquidate your position
+2. Your collateral is used to repay your debt
+3. 5% liquidation penalty is applied:
+   - 0.5% goes to the liquidator
+   - 4.5% goes to the Stability Pool depositors
+
+### Fees
+
+- **Borrow Fee**: 0.5% on borrowed amount (one-time, added to debt)
+- **Redemption Fee**: 0.5% when redeeming VUSD for SOL
+- **Liquidation Penalty**: 5% of collateral value
+
+## Safety Tips
+
+<Callout type="warning">
+  Follow these best practices to keep your position safe:
+</Callout>
+
+1. **Maintain a Healthy Buffer**: Keep your CR well above 110% (recommend 130%+)
+2. **Monitor SOL Price**: Watch for price drops that could reduce your CR
+3. **Set Alerts**: Use tools to alert you when your CR is getting low
+4. **Understand Liquidation**: Know the risks before opening a large position
+5. **Start Small**: Test with a small position first
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Open a Position"
+    description="Step-by-step guide to opening your first CDP"
+    href="/docs/getting-started/open-position"
+  />
+  <Card
+    title="Manage Your Position"
+    description="Learn how to adjust collateral and debt"
+    href="/docs/getting-started/manage-position"
+  />
+  <Card
+    title="Stability Pool"
+    description="Earn rewards by providing VUSD liquidity"
+    href="/docs/getting-started/stability-pool"
+  />
+</Cards>
+
+## Need Help?
+
+- Join our [Discord](https://discord.gg/v1ta)
+- Read the [FAQ](/docs/faq)
+- Check out [Protocol Overview](/docs/protocol/overview) for deeper understanding

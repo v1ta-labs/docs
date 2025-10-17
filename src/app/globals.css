@@ -1,0 +1,566 @@
+@import "tailwindcss";
+@import "fumadocs-ui/style.css";
+
+/* Responsive Grid Fix for Tailwind v4 */
+@media (min-width: 768px) {
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .md\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@layer base {
+  :root {
+    /* V1TA Dark Forest Theme Colors */
+
+    /* Background & Surface Colors */
+    --base: #050f05;
+    --surface: #0a1824;
+    --elevated: #0f2a38;
+    --border: #1d3c43;
+
+    /* Grey Palette */
+    --grey-darkest: #092409;
+    --grey-dark: #132f13;
+    --grey-medium: #1d3c43;
+    --grey-light: #2a4930;
+
+    /* Primary & Accent Colors */
+    --primary: #2a4930;
+    --primary-hover: #3a5940;
+    --primary-muted: rgba(42, 73, 48, 0.125);
+
+    /* Text Colors */
+    --text-primary: #c8d3d5;
+    --text-secondary: #8a9a9d;
+    --text-tertiary: #5a6a6d;
+    --text-disabled: #3a4a4d;
+
+    /* System Status Colors */
+    --success: #2a4930;
+    --warning: #4a3920;
+    --error: #4a2020;
+    --info: #1d3c43;
+
+    /* Design System Tokens */
+    --radius: 20px;
+    --radius-lg: 24px;
+    --radius-sm: 16px;
+    --radius-xs: 12px;
+
+    /* Fumadocs CSS Variables */
+    --background: var(--base);
+    --foreground: var(--text-primary);
+    --muted: var(--grey-darkest);
+    --muted-foreground: var(--text-secondary);
+    --card: var(--surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--elevated);
+    --popover-foreground: var(--text-primary);
+    --accent: var(--primary);
+    --accent-foreground: var(--text-primary);
+    --destructive: var(--error);
+    --destructive-foreground: var(--text-primary);
+    --ring: var(--primary);
+  }
+}
+
+@theme {
+  /* Breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* Colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-base: var(--base);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-muted: var(--primary-muted);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+
+  /* Border Radius */
+  --radius: var(--radius);
+  --radius-lg: var(--radius-lg);
+  --radius-sm: var(--radius-sm);
+  --radius-xs: var(--radius-xs);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Fumadocs UI Custom Styling */
+[data-fumadocs-ui] {
+  --fd-background: var(--base);
+  --fd-foreground: var(--text-primary);
+  --fd-muted: var(--grey-darkest);
+  --fd-muted-foreground: var(--text-secondary);
+  --fd-popover: var(--elevated);
+  --fd-popover-foreground: var(--text-primary);
+  --fd-card: var(--surface);
+  --fd-card-foreground: var(--text-primary);
+  --fd-border: var(--border);
+  --fd-primary: var(--primary);
+  --fd-primary-foreground: var(--text-primary);
+  --fd-secondary: var(--grey-dark);
+  --fd-secondary-foreground: var(--text-primary);
+  --fd-accent: var(--primary);
+  --fd-accent-foreground: var(--text-primary);
+  --fd-ring: var(--primary);
+}
+
+/* Make docs page background darker */
+[data-fumadocs-ui] main {
+  background: var(--base);
+}
+
+[data-fumadocs-ui] aside {
+  background: var(--base);
+}
+
+/* Make content area darker */
+[data-fumadocs-ui] article {
+  background: transparent;
+}
+
+/* Polish sidebar container */
+[data-fumadocs-ui] aside {
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Polish sidebar scrollbar */
+[data-fumadocs-ui] aside::-webkit-scrollbar {
+  width: 6px;
+}
+
+[data-fumadocs-ui] aside::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-fumadocs-ui] aside::-webkit-scrollbar-thumb {
+  background: rgba(42, 73, 48, 0.3);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+[data-fumadocs-ui] aside::-webkit-scrollbar-thumb:hover {
+  background: rgba(42, 73, 48, 0.5);
+}
+
+/* Polish sidebar links */
+[data-fumadocs-ui] aside a {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-fumadocs-ui] aside a::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: var(--primary);
+  transform: scaleY(0);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-fumadocs-ui] aside a:hover {
+  background: rgba(42, 73, 48, 0.1);
+  transform: translateX(4px);
+  box-shadow: 0 0 20px rgba(42, 73, 48, 0.15);
+}
+
+[data-fumadocs-ui] aside a:hover::before {
+  transform: scaleY(1);
+}
+
+[data-fumadocs-ui] aside a[data-active="true"] {
+  background: rgba(42, 73, 48, 0.15);
+  font-weight: 500;
+  color: white;
+}
+
+[data-fumadocs-ui] aside a[data-active="true"]::before {
+  transform: scaleY(1);
+}
+
+/* Polish sidebar folder/category headers */
+[data-fumadocs-ui] aside button[data-folder] {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+[data-fumadocs-ui] aside button[data-folder]:hover {
+  background: rgba(42, 73, 48, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateX(2px);
+}
+
+[data-fumadocs-ui] aside button[data-folder][data-open="true"] {
+  color: var(--primary);
+}
+
+/* Animate folder chevron */
+[data-fumadocs-ui] aside button[data-folder] svg {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-fumadocs-ui] aside button[data-folder][data-open="true"] svg {
+  transform: rotate(90deg);
+}
+
+/* Add subtle separator between sections */
+[data-fumadocs-ui] aside > div > div {
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+[data-fumadocs-ui] aside > div > div:last-child {
+  border-bottom: none;
+}
+
+/* Polish sidebar heading */
+[data-fumadocs-ui] aside h3,
+[data-fumadocs-ui] aside h4 {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  font-family: var(--font-cormorant), Georgia, serif;
+}
+
+/* Polish table of contents */
+[data-fumadocs-ui] [data-toc] a {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-fumadocs-ui] [data-toc] a:hover {
+  color: rgba(255, 255, 255, 0.8);
+  transform: translateX(2px);
+}
+
+[data-fumadocs-ui] [data-toc] a[data-active="true"] {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+/* Polish code blocks */
+[data-fumadocs-ui] pre {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(10px);
+}
+
+/* Polish inline code */
+[data-fumadocs-ui] :not(pre) > code {
+  background: rgba(42, 73, 48, 0.15);
+  border: 1px solid rgba(42, 73, 48, 0.3);
+  border-radius: 6px;
+  padding: 0.2em 0.4em;
+  color: var(--text-primary);
+}
+
+/* Polish headings */
+[data-fumadocs-ui] article h1,
+[data-fumadocs-ui] article h2,
+[data-fumadocs-ui] article h3 {
+  color: white;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+[data-fumadocs-ui] article h2 {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.5rem;
+  margin-top: 2rem;
+}
+
+/* Polish blockquotes */
+[data-fumadocs-ui] article blockquote {
+  border-left: 3px solid var(--primary);
+  background: rgba(42, 73, 48, 0.1);
+  border-radius: 0 12px 12px 0;
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+}
+
+/* Polish tables */
+[data-fumadocs-ui] article table {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+[data-fumadocs-ui] article th {
+  background: rgba(42, 73, 48, 0.15);
+  color: white;
+  font-weight: 600;
+}
+
+[data-fumadocs-ui] article tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Polish search */
+[data-fumadocs-ui] [role="dialog"] {
+  background: rgba(10, 24, 36, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+}
+
+/* Polish navigation bar */
+[data-fumadocs-ui] nav {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+}
+
+/* Add smooth scrolling */
+[data-fumadocs-ui] {
+  scroll-behavior: smooth;
+}
+
+/* Ensure all content is above background animations */
+body > div:not([style*="z-index"]) {
+  position: relative;
+  z-index: 10;
+}
+
+nav,
+main,
+footer,
+header {
+  position: relative;
+  z-index: 10;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover);
+}
+
+/* Noise Texture Overlay - Removed as it was dimming foreground content */
+
+/* Animated Gradient Border */
+@keyframes borderGlow {
+  0%, 100% {
+    background-position: 0% 50%;
+    opacity: 0.6;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 1;
+  }
+}
+
+@keyframes borderRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow:
+      0 0 20px rgba(42, 73, 48, 0.3),
+      0 0 40px rgba(42, 73, 48, 0.2),
+      inset 0 0 20px rgba(42, 73, 48, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 40px rgba(42, 73, 48, 0.6),
+      0 0 60px rgba(42, 73, 48, 0.4),
+      inset 0 0 30px rgba(42, 73, 48, 0.2);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Utility Classes */
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(10, 24, 36, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(42, 73, 48, 0.1);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(42, 73, 48, 0.2);
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Remove transition from animations */
+[class*="animate-"] {
+  transition: none;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(42, 73, 48, 0.3);
+  color: var(--text-primary);
+}

@@ -1,0 +1,283 @@
+---
+title: Protocol Overview
+description: Understand how v1ta works under the hood
+icon: BookOpen
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+# Protocol Overview
+
+v1ta is a decentralized borrowing protocol that allows you to mint VUSD stablecoin against SOL and LST collateral at just 110% collateralization ratio.
+
+## Core Principles
+
+### 1. Decentralized
+
+- **No centralized control**: Immutable smart contracts
+- **No governance**: Parameters are fixed at deployment
+- **Crypto-only collateral**: SOL and liquid staking tokens only
+- **No blacklists**: Truly permissionless
+
+### 2. Capital Efficient
+
+- **110% minimum collateral ratio**: Best-in-class capital efficiency
+- **Maximum borrowing power**: Borrow up to ~90.9% of your collateral value
+- **No interest rates**: Only pay a one-time 0.5% borrow fee
+
+### 3. Stability Mechanisms
+
+The protocol maintains VUSD at $1 USD through three mechanisms:
+
+1. **Redemptions**: Burn VUSD for $1 worth of SOL
+2. **Stability Pool**: Buffer against liquidations
+3. **Arbitrage**: Market forces keep the peg
+
+## Protocol Components
+
+### CDP (Collateralized Debt Position)
+
+A CDP is your position in the protocol. It consists of:
+
+- **Collateral**: SOL (or LSTs) you've deposited
+- **Debt**: VUSD you've borrowed
+- **Collateral Ratio**: The health of your position
+
+```
+Collateral Ratio = (Collateral Value USD / Debt VUSD) × 100%
+```
+
+<Callout type="info">
+  One CDP per wallet address. Manage everything from a single position.
+</Callout>
+
+### VUSD Stablecoin
+
+VUSD is the protocol's stablecoin:
+
+- **Soft-pegged to $1 USD**
+- **Backed by crypto collateral** (SOL/LSTs)
+- **Redeemable**: Always exchange for $1 worth of collateral
+- **Composable**: Usable across Solana DeFi
+
+**Token Details:**
+- Decimals: 6
+- Mintable only by opening/adjusting positions
+- Burnable through repayment or redemptions
+
+### Stability Pool
+
+The Stability Pool is the protocol's first line of defense against liquidations:
+
+- **Deposits**: Users deposit VUSD
+- **Purpose**: Repay liquidated debt
+- **Rewards**: Earn SOL from liquidation penalties (4.5%)
+
+When a position is liquidated:
+1. Debt is paid by burning VUSD from the Stability Pool
+2. Collateral is distributed pro-rata to depositors
+3. 5% penalty: 0.5% to liquidator, 4.5% to pool
+
+### Redemptions
+
+Redemption is the mechanism that keeps VUSD at $1:
+
+**How it works:**
+1. Burn X VUSD
+2. Receive $X worth of SOL (minus 0.5% fee)
+3. Collateral comes from CDPs with lowest CR
+
+**Why redemptions matter:**
+- VUSD trades below $1? Arbitragers buy cheap VUSD and redeem for $1
+- This buying pressure brings VUSD back to $1
+- Purely algorithmic - no intervention needed
+
+<Callout type="warning">
+  **For CDP Owners:** Keeping your CR high reduces redemption risk.
+</Callout>
+
+### Liquidations
+
+When a position's CR falls below 110%:
+
+- **Anyone can liquidate** the position
+- **Entire position is closed** at once
+- **Liquidator reward**: 0.5% of collateral value
+- **Stability Pool reward**: 4.5% of collateral value
+
+**Liquidation Process:**
+1. Liquidator calls `liquidate` instruction
+2. Position debt is repaid from Stability Pool
+3. Position collateral goes to Stability Pool depositors
+4. Liquidator receives 0.5% reward
+5. Position is marked as liquidated
+
+## Oracle System
+
+v1ta uses Pyth Network for real-time price feeds:
+
+- **Feed**: SOL/USD
+- **Update Frequency**: Sub-second
+- **Max Staleness**: 60 seconds
+- **Precision**: 8 decimals
+
+<Callout type="info">
+  **Future**: Dual oracle system with Switchboard for additional security.
+</Callout>
+
+## Key Parameters
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| Min CR | 110% | Minimum collateralization ratio |
+| Min Debt | 1 VUSD | Minimum borrowable amount |
+| Borrow Fee | 0.5% | One-time fee when borrowing |
+| Redemption Fee | 0.5% | Fee when redeeming VUSD for SOL |
+| Liquidation Penalty | 5% | Penalty on liquidated collateral |
+| Liquidator Reward | 0.5% | Reward for liquidators |
+| SP Reward | 4.5% | Reward for Stability Pool |
+| Max Price Age | 60s | Maximum oracle staleness |
+
+## Protocol States
+
+### Global State
+
+The protocol maintains global state tracking:
+
+- Total collateral locked
+- Total VUSD debt outstanding
+- Total positions opened
+- Stability Pool status
+
+### Position States
+
+Each position can be in one of three states:
+
+1. **Active**: Normal operating state
+2. **Closed**: User has fully repaid and withdrawn
+3. **Liquidated**: Position was liquidated due to low CR
+
+## Protocol Flow
+
+### Opening a Position
+
+```mermaid
+graph LR
+    A[User] -->|Deposit SOL| B[CDP]
+    B -->|Mint VUSD| C[User Wallet]
+    B -->|Update State| D[Global State]
+```
+
+1. User deposits SOL collateral
+2. Protocol calculates max borrowable amount
+3. VUSD is minted (minus 0.5% fee)
+4. Position is created and marked Active
+
+### Liquidation Flow
+
+```mermaid
+graph LR
+    A[Liquidator] -->|Trigger| B[Unhealthy CDP]
+    C[Stability Pool] -->|Repay Debt| B
+    B -->|Transfer Collateral| C
+    B -->|Reward 0.5%| A
+```
+
+1. Bot/user detects CR < 110%
+2. Calls liquidate with position address
+3. Stability Pool VUSD burns to cover debt
+4. Collateral transfers to pool depositors
+5. Liquidator receives 0.5% reward
+
+### Redemption Flow
+
+```mermaid
+graph LR
+    A[User] -->|Burn VUSD| B[Protocol]
+    B -->|Find Lowest CR CDP| C[CDP]
+    C -->|Transfer SOL| A
+    C -->|Update Debt| D[Global State]
+```
+
+1. User burns X VUSD
+2. Protocol finds CDPs with lowest CR
+3. Extracts $X worth of SOL from those CDPs
+4. Transfers SOL to user (minus 0.5% fee)
+5. Reduces affected CDPs' debt proportionally
+
+## Security Features
+
+### No Governance Risk
+
+- **Immutable contracts**: No upgrades or parameter changes
+- **No admin keys**: No one can pause or modify the protocol
+- **Deterministic**: Behavior is 100% predictable
+
+### Oracle Security
+
+- **Staleness checks**: Reject prices older than 60 seconds
+- **Confidence intervals**: Validate oracle confidence
+- **Fallback planned**: Dual oracle system coming
+
+### Precision Handling
+
+- **SOL**: 9 decimals (lamports)
+- **VUSD**: 6 decimals
+- **Prices**: 8 decimals (Pyth standard)
+- **Calculations**: Proper scaling prevents overflow
+
+### Economic Security
+
+- **Liquidation incentives**: 0.5% reward ensures bot profitability
+- **Stability Pool buffer**: Prevents bad debt accumulation
+- **Redemption arbitrage**: Keeps VUSD pegged algorithmically
+
+## Comparison with Other Protocols
+
+| Feature | v1ta | MakerDAO | Liquity | Aave |
+|---------|------|----------|---------|------|
+| Min CR | `110%` | `150%` | `110%` | `150%+` |
+| Governance | None | DAO | None | DAO |
+| Collateral | Crypto-only | RWAs + Crypto | ETH only | Multi-asset |
+| Interest | `0%` (flat fee) | Variable | `0%` (flat fee) | Variable |
+| Chain | Solana | Ethereum | Ethereum | Multi-chain |
+| Speed | Sub-second | `15s+` | `15s+` | Varies |
+
+## Why 110% Works
+
+The 110% minimum collateral ratio is sustainable because:
+
+1. **Fast liquidations**: Solana's speed enables sub-second liquidation bots
+2. **Stability Pool buffer**: Absorbs bad debt before it affects the protocol
+3. **Redemption mechanism**: Creates continuous price pressure toward $1
+4. **Economic incentives**: Liquidators profit from maintaining protocol health
+
+<Callout type="info">
+  Liquity pioneered 110% CR on Ethereum. v1ta brings this efficiency to Solana with even faster liquidations.
+</Callout>
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="CDP Mechanism"
+    description="Deep dive into how CDPs work"
+    href="/docs/protocol/cdp-mechanism"
+  />
+  <Card
+    title="Stability Pool"
+    description="Learn how the Stability Pool protects the protocol"
+    href="/docs/protocol/stability-pool"
+  />
+  <Card
+    title="Liquidations"
+    description="Understand the liquidation process"
+    href="/docs/protocol/liquidations"
+  />
+  <Card
+    title="Redemptions"
+    description="How redemptions maintain the peg"
+    href="/docs/protocol/redemptions"
+  />
+</Cards>

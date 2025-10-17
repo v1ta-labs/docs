@@ -1,0 +1,12 @@
+{
+  "title": "Protocol",
+  "pages": [
+    "overview",
+    "cdp-mechanism",
+    "stability-pool",
+    "redemptions",
+    "liquidations",
+    "collateral",
+    "fees"
+  ]
+}

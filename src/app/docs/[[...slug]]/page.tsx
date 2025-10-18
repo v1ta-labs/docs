@@ -1,6 +1,7 @@
 import { source } from '@/lib/source';
 import type { Metadata } from 'next';
-import { DocsPage, DocsBody } from 'fumadocs-ui/page';
+import { DocsBody } from 'fumadocs-ui/page';
+import { ResponsiveDocsPage } from '@/components/responsive-docs-page';
 import { notFound } from 'next/navigation';
 
 export default async function Page(props: {
@@ -10,18 +11,15 @@ export default async function Page(props: {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  const pageData = page.data as unknown as Record<string, unknown> & {
-    exports?: { default: React.ComponentType };
-  };
-  const MDX = pageData.exports?.default || (() => null);
+  const MDX = page.data.body;
 
   const path = `content/docs/${params.slug?.join('/') || 'index'}.mdx`;
 
   return (
-    <DocsPage
-      toc={pageData.toc as never}
-      full={pageData.full as boolean | undefined}
-      lastUpdate={pageData.lastModified as Date | undefined}
+    <ResponsiveDocsPage
+      toc={page.data.toc}
+      full={page.data.full}
+      lastUpdate={page.data.lastModified}
       editOnGithub={{
         owner: 'v1ta-labs',
         repo: 'docs',
@@ -53,10 +51,10 @@ export default async function Page(props: {
       }}
     >
       <DocsBody>
-        <h1>{(pageData.title as string) || ''}</h1>
+        <h1>{page.data.title}</h1>
         <MDX />
       </DocsBody>
-    </DocsPage>
+    </ResponsiveDocsPage>
   );
 }
 
@@ -71,13 +69,8 @@ export async function generateMetadata(props: {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  const pageData = page.data as unknown as {
-    title?: string;
-    description?: string;
-  };
-
   return {
-    title: pageData.title,
-    description: pageData.description,
+    title: page.data.title,
+    description: page.data.description,
   };
 }

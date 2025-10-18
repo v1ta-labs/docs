@@ -9,71 +9,24 @@ import { useEffect } from 'react';
  */
 export function RemoveThemeToggle() {
   useEffect(() => {
-    // Handle TOC visibility based on window width
+    // Handle TOC visibility based on window width - SIMPLIFIED
     const handleTOC = () => {
       const width = window.innerWidth;
 
-      // Target all possible TOC selectors
-      const tocSelectors = [
-        '[data-toc]',
-        '.toc',
-        '[role="complementary"]',
-        'aside[data-toc]',
-        'nav[data-toc]',
-        // Fumadocs specific
-        '[class*="toc"]',
-        '[class*="TOC"]',
-      ];
+      // Only hide elements with data-toc attribute - nothing else
+      const tocElements = document.querySelectorAll('[data-toc]');
 
-      tocSelectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-          const element = el as HTMLElement;
+      tocElements.forEach(el => {
+        const element = el as HTMLElement;
 
-          // Hide TOC at medium resolutions (770-1279px) to prevent overlap
-          if (width >= 770 && width <= 1279) {
-            element.style.display = 'none';
-            element.style.visibility = 'hidden';
-            element.style.opacity = '0';
-            element.style.width = '0';
-            element.style.height = '0';
-            element.style.overflow = 'hidden';
-            element.style.position = 'absolute';
-            element.style.left = '-9999px';
-          } else if (width >= 1280) {
-            // Restore TOC at larger resolutions
-            element.style.display = '';
-            element.style.visibility = '';
-            element.style.opacity = '';
-            element.style.width = '';
-            element.style.height = '';
-            element.style.overflow = '';
-            element.style.position = '';
-            element.style.left = '';
-          }
-        });
+        // Hide TOC at medium resolutions (770-1279px) to prevent overlap
+        if (width >= 770 && width <= 1279) {
+          element.style.display = 'none';
+        } else if (width >= 1280) {
+          // Restore TOC at larger resolutions
+          element.style.display = '';
+        }
       });
-
-      // Also target the right sidebar container in DocsLayout
-      const main = document.querySelector('main');
-      if (main) {
-        // Look for the container that holds TOC (usually last child or a specific grid column)
-        const possibleTOCContainers = main.querySelectorAll('aside, nav, [role="complementary"]');
-        possibleTOCContainers.forEach(container => {
-          const el = container as HTMLElement;
-          // Check if it contains TOC-related content
-          if (el.innerHTML.includes('On this page') ||
-              el.innerHTML.includes('Table of Contents') ||
-              el.querySelector('[data-toc]') ||
-              el.classList.toString().includes('toc')) {
-            if (width >= 770 && width <= 1279) {
-              el.style.display = 'none';
-            } else if (width >= 1280) {
-              el.style.display = '';
-            }
-          }
-        });
-      }
     };
 
     const removeThemeToggle = () => {

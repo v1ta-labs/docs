@@ -438,6 +438,20 @@ button[data-theme],
 
 /* Mobile Phones - Portrait (320px - 480px) */
 @media (max-width: 480px) {
+  /* Hide TOC on mobile as well */
+  [data-toc],
+  #nd-tocnav,
+  header#nd-tocnav,
+  [id*="tocnav"],
+  aside:has([data-toc]) {
+    display: none !important;
+  }
+
+  /* Set TOC width to 0 */
+  :root {
+    --fd-toc-width: 0px !important;
+  }
+
   [data-fumadocs-ui] aside {
     max-width: 90vw;
     font-size: 0.875rem;
@@ -546,76 +560,51 @@ button[data-theme],
   }
 }
 
-/* Medium Resolution Fix - Critical Range (770px - 1279px) */
-/* This fixes the layout conflict where TOC/article nav overlaps */
-@media (min-width: 770px) and (max-width: 1279px) {
-  /* Hide ONLY elements with data-toc attribute - NOTHING ELSE */
-  [data-toc] {
+/* Small to Medium Resolution Fix (481px - 1279px) */
+/* Hide ONLY the right-side "On this page" TOC to prevent overlap */
+/* DO NOT hide the left navigation sidebar */
+@media (min-width: 481px) and (max-width: 1279px) {
+  /* KEY FIX: Set Fumadocs TOC width variable to 0 */
+  :root {
+    --fd-toc-width: 0px !important;
+  }
+
+  /* Hide all TOC-related elements */
+  [data-toc],
+  #nd-tocnav,
+  header#nd-tocnav,
+  [id*="tocnav"],
+  aside:has([data-toc]) {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
     width: 0 !important;
     height: 0 !important;
-    overflow: hidden !important;
     position: absolute !important;
     left: -9999px !important;
+    pointer-events: none !important;
   }
 
-  /* Give article more breathing room */
-  [data-fumadocs-ui] article {
-    max-width: 100% !important;
-    margin-right: 0 !important;
-    margin-left: 0 !important;
-    padding: 1.5rem 2rem;
-  }
-
-  /* Ensure main content area uses full available width - FORCE SINGLE COLUMN */
-  [data-fumadocs-ui] main,
-  [data-fumadocs-ui] [data-docs-layout] main,
-  main[class*="docs"],
-  main[class*="layout"] {
-    grid-template-columns: 1fr !important;
-    display: block !important;
-    width: 100% !important;
-  }
-
-  /* Force container to be full width */
-  [data-fumadocs-ui] main > *,
-  [data-fumadocs-ui] main > div,
-  [data-fumadocs-ui] main > article {
-    max-width: 100% !important;
-    width: 100% !important;
-    grid-column: 1 / -1 !important;
-  }
-
-  /* Force article container to take full width */
-  [data-fumadocs-ui] [data-docs-page],
-  [data-fumadocs-ui] [role="main"],
-  [data-fumadocs-ui] main article {
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    width: 100% !important;
-  }
-
-  /* Adjust container to prevent squishing */
-  [data-fumadocs-ui] .container,
+  /* Remove right padding that was reserved for TOC */
+  #nd-page,
+  [id*="page"],
   [data-fumadocs-ui] main > div {
-    max-width: 100% !important;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-right: 0 !important;
+    padding-inline-end: 0 !important;
+    margin-right: 0 !important;
   }
 
-  /* Prevent sidebar from taking too much space */
-  [data-fumadocs-ui] aside {
-    max-width: 260px;
-    min-width: 240px;
-  }
-
-  /* Adjust article width calculation to account for sidebar */
+  /* Ensure article uses full available width */
   [data-fumadocs-ui] article {
-    width: 100%;
-    min-width: 0;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-right: 0 !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Force header to not reserve space */
+  header[id*="toc"] {
+    display: none !important;
   }
 
   /* Typography adjustments for medium screens */
@@ -633,10 +622,6 @@ button[data-theme],
 
   [data-fumadocs-ui] pre {
     font-size: 0.875rem;
-  }
-
-  /* Make code blocks scroll instead of breaking layout */
-  [data-fumadocs-ui] pre {
     max-width: 100%;
     overflow-x: auto;
   }
@@ -652,6 +637,12 @@ button[data-theme],
   [data-fumadocs-ui] article img {
     max-width: 100%;
     height: auto;
+  }
+
+  /* Adjust sidebar width */
+  [data-fumadocs-ui] aside {
+    max-width: 260px;
+    min-width: 240px;
   }
 }
 

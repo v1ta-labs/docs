@@ -10,7 +10,7 @@ import { RemoveThemeToggle } from '@/components/remove-theme-toggle';
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <>
-      {/* <RemoveThemeToggle /> */}
+      <RemoveThemeToggle />
       <MeshGradient />
       <AnimatedGrid />
       <MysticalBranches />

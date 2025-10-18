@@ -1,7 +1,6 @@
 import { source } from '@/lib/source';
 import type { Metadata } from 'next';
-import { DocsBody } from 'fumadocs-ui/page';
-import { ResponsiveDocsPage } from '@/components/responsive-docs-page';
+import { DocsPage, DocsBody } from 'fumadocs-ui/page';
 import { notFound } from 'next/navigation';
 
 export default async function Page(props: {
@@ -16,7 +15,7 @@ export default async function Page(props: {
   const path = `content/docs/${params.slug?.join('/') || 'index'}.mdx`;
 
   return (
-    <ResponsiveDocsPage
+    <DocsPage
       toc={page.data.toc}
       full={page.data.full}
       lastUpdate={page.data.lastModified}
@@ -54,7 +53,7 @@ export default async function Page(props: {
         <h1>{page.data.title}</h1>
         <MDX />
       </DocsBody>
-    </ResponsiveDocsPage>
+    </DocsPage>
   );
 }
 

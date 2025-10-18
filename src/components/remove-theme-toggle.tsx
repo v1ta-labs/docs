@@ -3,32 +3,12 @@
 import { useEffect } from 'react';
 
 /**
- * Removes theme toggle button from the DOM and handles TOC at medium resolutions
- * Since Fumadocs doesn't provide a built-in way to hide these,
- * we need to remove/manage them manually after the component mounts
+ * Removes theme toggle button from the DOM
+ * Since Fumadocs doesn't provide a built-in way to hide it,
+ * we need to remove it manually after the component mounts
  */
 export function RemoveThemeToggle() {
   useEffect(() => {
-    // Handle TOC visibility based on window width - SIMPLIFIED
-    const handleTOC = () => {
-      const width = window.innerWidth;
-
-      // Only hide elements with data-toc attribute - nothing else
-      const tocElements = document.querySelectorAll('[data-toc]');
-
-      tocElements.forEach(el => {
-        const element = el as HTMLElement;
-
-        // Hide TOC at medium resolutions (770-1279px) to prevent overlap
-        if (width >= 770 && width <= 1279) {
-          element.style.display = 'none';
-        } else if (width >= 1280) {
-          // Restore TOC at larger resolutions
-          element.style.display = '';
-        }
-      });
-    };
-
     const removeThemeToggle = () => {
       // Target all possible theme toggle buttons
       const selectors = [
@@ -98,26 +78,15 @@ export function RemoveThemeToggle() {
 
     // Remove immediately
     removeThemeToggle();
-    handleTOC();
 
     // Remove again after a short delay (for dynamically loaded content)
-    const timeout1 = setTimeout(() => {
-      removeThemeToggle();
-      handleTOC();
-    }, 100);
-    const timeout2 = setTimeout(() => {
-      removeThemeToggle();
-      handleTOC();
-    }, 500);
-    const timeout3 = setTimeout(() => {
-      removeThemeToggle();
-      handleTOC();
-    }, 1000);
+    const timeout1 = setTimeout(removeThemeToggle, 100);
+    const timeout2 = setTimeout(removeThemeToggle, 500);
+    const timeout3 = setTimeout(removeThemeToggle, 1000);
 
     // Set up a MutationObserver to catch dynamically added theme toggles
     const observer = new MutationObserver(() => {
       removeThemeToggle();
-      handleTOC();
     });
 
     // Observe the entire document for changes
@@ -126,15 +95,11 @@ export function RemoveThemeToggle() {
       subtree: true,
     });
 
-    // Handle window resize
-    window.addEventListener('resize', handleTOC);
-
     return () => {
       clearTimeout(timeout1);
       clearTimeout(timeout2);
       clearTimeout(timeout3);
       observer.disconnect();
-      window.removeEventListener('resize', handleTOC);
     };
   }, []);
 

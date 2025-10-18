@@ -9,7 +9,7 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 
 # Protocol Overview
 
-v1ta is a decentralized borrowing protocol that allows you to mint VUSD stablecoin against SOL and LST collateral at just 110% collateralization ratio.
+v1ta is a decentralized borrowing protocol that lets you mint VUSD stablecoin against SOL and LST collateral at just 110% collateralization ratio.
 
 ## Core Principles
 
@@ -23,7 +23,7 @@ v1ta is a decentralized borrowing protocol that allows you to mint VUSD stableco
 ### 2. Capital Efficient
 
 - **110% minimum collateral ratio**: Best-in-class capital efficiency
-- **Maximum borrowing power**: Borrow up to ~90.9% of your collateral value
+- **Maximum borrowing power**: Borrow up to about 90.9% of your collateral value
 - **No interest rates**: Only pay a one-time 0.5% borrow fee
 
 ### 3. Stability Mechanisms
@@ -57,13 +57,13 @@ Collateral Ratio = (Collateral Value USD / Debt VUSD) × 100%
 VUSD is the protocol's stablecoin:
 
 - **Soft-pegged to $1 USD**
-- **Backed by crypto collateral** (SOL/LSTs)
+- **Backed by crypto collateral** (SOL and LSTs)
 - **Redeemable**: Always exchange for $1 worth of collateral
 - **Composable**: Usable across Solana DeFi
 
 **Token Details:**
 - Decimals: 6
-- Mintable only by opening/adjusting positions
+- Mintable only by opening or adjusting positions
 - Burnable through repayment or redemptions
 
 ### Stability Pool
@@ -91,7 +91,7 @@ Redemption is the mechanism that keeps VUSD at $1:
 **Why redemptions matter:**
 - VUSD trades below $1? Arbitragers buy cheap VUSD and redeem for $1
 - This buying pressure brings VUSD back to $1
-- Purely algorithmic - no intervention needed
+- Purely algorithmic, no intervention needed
 
 <Callout type="warning">
   **For CDP Owners:** Keeping your CR high reduces redemption risk.
@@ -162,13 +162,6 @@ Each position can be in one of three states:
 
 ### Opening a Position
 
-```mermaid
-graph LR
-    A[User] -->|Deposit SOL| B[CDP]
-    B -->|Mint VUSD| C[User Wallet]
-    B -->|Update State| D[Global State]
-```
-
 1. User deposits SOL collateral
 2. Protocol calculates max borrowable amount
 3. VUSD is minted (minus 0.5% fee)
@@ -176,29 +169,13 @@ graph LR
 
 ### Liquidation Flow
 
-```mermaid
-graph LR
-    A[Liquidator] -->|Trigger| B[Unhealthy CDP]
-    C[Stability Pool] -->|Repay Debt| B
-    B -->|Transfer Collateral| C
-    B -->|Reward 0.5%| A
-```
-
-1. Bot/user detects CR < 110%
+1. Bot or user detects CR < 110%
 2. Calls liquidate with position address
 3. Stability Pool VUSD burns to cover debt
 4. Collateral transfers to pool depositors
 5. Liquidator receives 0.5% reward
 
 ### Redemption Flow
-
-```mermaid
-graph LR
-    A[User] -->|Burn VUSD| B[Protocol]
-    B -->|Find Lowest CR CDP| C[CDP]
-    C -->|Transfer SOL| A
-    C -->|Update Debt| D[Global State]
-```
 
 1. User burns X VUSD
 2. Protocol finds CDPs with lowest CR
@@ -237,12 +214,12 @@ graph LR
 
 | Feature | v1ta | MakerDAO | Liquity | Aave |
 |---------|------|----------|---------|------|
-| Min CR | `110%` | `150%` | `110%` | `150%+` |
+| Min CR | 110% | 150% | 110% | 150%+ |
 | Governance | None | DAO | None | DAO |
 | Collateral | Crypto-only | RWAs + Crypto | ETH only | Multi-asset |
-| Interest | `0%` (flat fee) | Variable | `0%` (flat fee) | Variable |
+| Interest | 0% (flat fee) | Variable | 0% (flat fee) | Variable |
 | Chain | Solana | Ethereum | Ethereum | Multi-chain |
-| Speed | Sub-second | `15s+` | `15s+` | Varies |
+| Speed | Sub-second | 15s+ | 15s+ | Varies |
 
 ## Why 110% Works
 

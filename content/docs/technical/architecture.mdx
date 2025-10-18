@@ -12,40 +12,7 @@ v1ta is built as a Solana program using the Anchor framework. This document prov
 
 ## System Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        v1ta Protocol                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │   Global     │  │  VUSD Mint   │  │   Stability  │     │
-│  │    State     │  │              │  │     Pool     │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │              User Positions (PDAs)                    │  │
-│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐ │  │
-│  │  │Position │  │Position │  │Position │  │  ...   │ │  │
-│  │  │   #1    │  │   #2    │  │   #3    │  │        │ │  │
-│  │  └─────────┘  └─────────┘  └─────────┘  └────────┘ │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │         Stability Pool Deposits (PDAs)               │  │
-│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐ │  │
-│  │  │ Deposit │  │ Deposit │  │ Deposit │  │  ...   │ │  │
-│  │  │   #1    │  │   #2    │  │   #3    │  │        │ │  │
-│  │  └─────────┘  └─────────┘  └─────────┘  └────────┘ │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │  Pyth Oracle  │
-                    │   SOL/USD     │
-                    └───────────────┘
-```
+v1ta Protocol consists of a Global State account, VUSD Mint, Stability Pool, and multiple user Position accounts (PDAs) and Stability Deposit accounts (PDAs). The protocol connects to a Pyth Oracle for SOL/USD price feeds.
 
 ## Technology Stack
 
@@ -80,7 +47,7 @@ Devnet: D4PzAjCQtGL5n6b79fBJh5Z84GKJk1ruPCYn8914dsST
 ```
 programs/v1ta-devnet/
 ├── src/
-│   ├── lib.rs              # Program entrypoint & instruction handlers
+│   ├── lib.rs              # Program entrypoint and instruction handlers
 │   ├── state.rs            # State account definitions
 │   ├── errors.rs           # Custom error types
 │   ├── constants.rs        # Protocol constants
@@ -140,7 +107,7 @@ pub struct Position {
     pub owner: Pubkey,              // 32 bytes - Position owner
     pub collateral: u64,            // 8 bytes - SOL locked (lamports)
     pub debt: u64,                  // 8 bytes - VUSD owed (6 decimals)
-    pub status: PositionStatus,     // 1 byte - Active/Closed/Liquidated
+    pub status: PositionStatus,     // 1 byte - Active, Closed, Liquidated
     pub bump: u8,                   // 1 byte - PDA bump
 }
 
@@ -251,10 +218,10 @@ pub struct OpenPositionParams {
 
 **Validation**:
 1. Check collateral_amount > 0
-2. Check vusd_to_mint >= 1 VUSD
+2. Check vusd_to_mint at least 1 VUSD
 3. Fetch SOL price from Pyth
 4. Calculate collateral ratio with 0.5% fee
-5. Ensure CR >= 110%
+5. Ensure CR at least 110%
 
 **Effects**:
 1. Transfer SOL from user to vault
@@ -265,7 +232,7 @@ pub struct OpenPositionParams {
 
 ### 3. Adjust Position
 
-**Purpose**: Modify existing CDP (add/remove collateral or debt).
+**Purpose**: Modify existing CDP (add or remove collateral or debt).
 
 **Parameters**:
 ```rust
@@ -285,8 +252,8 @@ pub struct AdjustPositionParams {
 
 **Validation**:
 1. Position must be Active
-2. After changes, CR >= 110%
-3. Debt >= 1 VUSD (or 0 if closing)
+2. After changes, CR at least 110%
+3. Debt at least 1 VUSD (or 0 if closing)
 4. Sufficient balances
 
 ### 4. Close Position
@@ -301,12 +268,12 @@ pub struct AdjustPositionParams {
 
 ### 5. Liquidate
 
-**Purpose**: Close positions with CR < 110%.
+**Purpose**: Close positions with CR under 110%.
 
-**Eligibility**: Any position with CR < 110%
+**Eligibility**: Any position with CR under 110%
 
 **Process**:
-1. Verify CR < 110%
+1. Verify CR under 110%
 2. Calculate liquidation penalty (5%)
 3. Repay debt from Stability Pool
 4. Transfer collateral to Stability Pool
@@ -385,7 +352,7 @@ fn get_sol_price(price_feed: &AccountInfo) -> Result<u64> {
 
     // Check staleness
     require!(
-        price_data.publish_time >= current_timestamp - 60,
+        price_data.publish_time >= current_timestamp minus 60,
         ErrorCode::OraclePriceStale
     );
 
@@ -413,7 +380,7 @@ Every instruction validates:
 2. **PDA derivation**: PDAs match expected seeds
 3. **Signer requirements**: Required signatures present
 4. **State transitions**: Valid state changes
-5. **Math operations**: No overflow/underflow
+5. **Math operations**: No overflow or underflow
 6. **Price freshness**: Oracle data not stale
 7. **Collateral ratio**: Maintained above 110%
 
@@ -453,27 +420,27 @@ fn calculate_cr(collateral: u64, debt: u64, price: u64) -> u64 {
 4. **Stability Rewards**: Never distributed (`sol_reward_earned` never updated)
 5. **Deposit Stability Init**: Users can only deposit once due to `init` constraint
 
-See [Security](/docs/technical/security) for full details and mitigation plans.
+See the Security docs for full details and mitigation plans.
 
 ## Performance Considerations
 
 ### Transaction Costs
 
-Approximate costs (Devnet):
-- Initialize: ~0.01 SOL (one-time)
-- Open Position: ~0.0005 SOL
-- Adjust Position: ~0.0003 SOL
-- Close Position: ~0.0003 SOL
-- Liquidate: ~0.0005 SOL
+Approximate costs on Devnet:
+- Initialize: about 0.01 SOL (one-time)
+- Open Position: about 0.0005 SOL
+- Adjust Position: about 0.0003 SOL
+- Close Position: about 0.0003 SOL
+- Liquidate: about 0.0005 SOL
 
 ### Compute Units
 
 Typical compute unit usage:
-- Open Position: ~150k CU
-- Adjust Position: ~100k CU
-- Liquidate: ~200k CU
+- Open Position: about 150k CU
+- Adjust Position: about 100k CU
+- Liquidate: about 200k CU
 
-All operations well within Solana's 1.4M CU limit per transaction.
+All operations stay well within Solana's 1.4M CU limit per transaction.
 
 ### Scaling
 

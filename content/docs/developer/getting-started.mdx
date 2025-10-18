@@ -9,14 +9,16 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 
 # Developer Getting Started
 
-This guide will help you integrate v1ta into your application or build tools on top of the protocol.
+Want to integrate v1ta into your app or build tools on top of the protocol? You're in the right place.
 
-## Prerequisites
+## What You Need
+
+Before you start, make sure you have:
 
 - Node.js 18+ or Bun
 - TypeScript knowledge
-- Basic understanding of Solana development
-- Anchor framework familiarity
+- Basic Solana development experience
+- Some familiarity with the Anchor framework
 
 ## Installation
 
@@ -58,7 +60,7 @@ const programId = new PublicKey('D4PzAjCQtGL5n6b79fBJh5Z84GKJk1ruPCYn8914dsST');
 
 ## Quick Example
 
-Here's a complete example of opening a position:
+Here's how to open a position. This example shows you everything you need:
 
 ```typescript
 import { Connection, PublicKey, Keypair } from '@solana/web3.js';
@@ -130,7 +132,7 @@ async function openPosition() {
 
 ### Program Derived Addresses (PDAs)
 
-v1ta uses PDAs for all state accounts. Here's how to derive them:
+v1ta uses PDAs for all state accounts. Here's how to find them:
 
 ```typescript
 import { PublicKey } from '@solana/web3.js';
@@ -171,6 +173,8 @@ function getStabilityDepositPDA(depositor: PublicKey): [PublicKey, number] {
 ```
 
 ### Reading State
+
+Fetching data from the protocol is straightforward:
 
 ```typescript
 // Fetch global state

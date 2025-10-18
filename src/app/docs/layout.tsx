@@ -5,10 +5,12 @@ import { MysticalBranches } from '@/components/mystical-branches';
 import { AnimatedGrid } from '@/components/animated-grid';
 import { MeshGradient } from '@/components/mesh-gradient';
 import { Logotype } from '@/components/logotype';
+import { RemoveThemeToggle } from '@/components/remove-theme-toggle';
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <>
+      <RemoveThemeToggle />
       <MeshGradient />
       <AnimatedGrid />
       <MysticalBranches />

@@ -549,21 +549,77 @@ button[data-theme],
 /* Medium Resolution Fix - Critical Range (770px - 1279px) */
 /* This fixes the layout conflict where TOC/article nav overlaps */
 @media (min-width: 770px) and (max-width: 1279px) {
-  /* Hide TOC on the right to prevent overlap */
-  [data-fumadocs-ui] [data-toc] {
+  /* Hide TOC on the right to prevent overlap - ULTRA MEGA AGGRESSIVE */
+  [data-fumadocs-ui] [data-toc],
+  [data-toc],
+  aside[data-toc],
+  nav[data-toc],
+  div[data-toc],
+  [data-fumadocs-ui] aside + div,
+  [data-fumadocs-ui] [role="complementary"]:has([data-toc]),
+  [data-fumadocs-ui] [role="complementary"],
+  [data-fumadocs-ui] aside:last-child,
+  [data-fumadocs-ui] nav:has([data-toc]),
+  /* Target by class names */
+  [class*="toc"],
+  [class*="TOC"],
+  [class*="table-of-contents"],
+  /* Target the grid column that contains TOC */
+  [data-fumadocs-ui] main > div:last-child:not(:only-child),
+  [data-fumadocs-ui] main > aside:last-child,
+  [data-fumadocs-ui] main > nav:last-child,
+  /* Target Fumadocs layout structure */
+  [data-fumadocs-ui] .fd-toc,
+  [data-fumadocs-ui] [data-fd-toc] {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    max-width: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   /* Give article more breathing room */
   [data-fumadocs-ui] article {
     max-width: 100% !important;
     margin-right: 0 !important;
+    margin-left: 0 !important;
     padding: 1.5rem 2rem;
   }
 
-  /* Ensure main content area uses full available width */
-  [data-fumadocs-ui] main {
+  /* Ensure main content area uses full available width - FORCE SINGLE COLUMN */
+  [data-fumadocs-ui] main,
+  [data-fumadocs-ui] [data-docs-layout] main,
+  main[class*="docs"],
+  main[class*="layout"] {
     grid-template-columns: 1fr !important;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Force container to be full width */
+  [data-fumadocs-ui] main > *,
+  [data-fumadocs-ui] main > div,
+  [data-fumadocs-ui] main > article {
+    max-width: 100% !important;
+    width: 100% !important;
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Force article container to take full width */
+  [data-fumadocs-ui] [data-docs-page],
+  [data-fumadocs-ui] [role="main"],
+  [data-fumadocs-ui] main article {
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
   }
 
   /* Adjust container to prevent squishing */

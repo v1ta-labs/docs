@@ -8,7 +8,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # marginfi Integration
 
-v1ta is built on top of marginfi, Solana's leading DeFi protocol, to provide flash liquidity and composable credit functionality.
+v1ta is built on top of marginfi, Solana's leading DeFi protocol, to provide flash liquidity and composable credit.
 
 ## What is marginfi?
 
@@ -23,7 +23,7 @@ marginfi is a decentralized lending protocol on Solana that provides:
 
 ### 1. Flash Liquidity
 
-v1ta leverages marginfi's flash loan capabilities for instant liquidity:
+v1ta uses marginfi's flash loan capabilities for instant liquidity:
 
 **Use Cases:**
 - Liquidation bots can flash borrow VUSD to liquidate positions
@@ -55,7 +55,7 @@ async function flashLiquidate(targetPosition: PublicKey) {
       // Swap received SOL for VUSD
       const vusdReceived = await swapSolToVusd(/* ... */);
 
-      // Return borrowed amount + fee
+      // Return borrowed amount plus fee
       return vusdReceived;
     }
   );
@@ -97,21 +97,7 @@ Manage positions across both protocols:
 
 ## Integration Architecture
 
-```
-┌──────────────────────────────────────────────────┐
-│                    User Wallet                    │
-└────────────┬─────────────────────────────────────┘
-             │
-      ┌──────┴──────┐
-      ▼             ▼
-┌──────────┐  ┌──────────┐
-│   v1ta   │  │ marginfi │
-│          │  │          │
-│ CDP with │  │ VUSD as  │
-│ SOL      │◄─┤ Collat.  │
-│          │  │          │
-└──────────┘  └──────────┘
-```
+The user's wallet connects to both v1ta and marginfi, with v1ta providing CDP functionality and marginfi providing VUSD as collateral for other borrows.
 
 ## Code Examples
 
@@ -198,11 +184,11 @@ class V1taMarginfiIntegration {
           })
           .rpc();
 
-        // We received SOL + 0.5% bonus
+        // We received SOL plus 0.5% bonus
         // Swap SOL back to VUSD to repay loan
         const vusdFromSwap = await this.swapSolToVusd(/* ... */);
 
-        return vusdFromSwap; // Must be >= borrowed amount
+        return vusdFromSwap; // Must be at least borrowed amount
       }
     });
   }

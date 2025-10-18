@@ -8,7 +8,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # Drift Protocol Integration
 
-v1ta's VUSD stablecoin is integrated with Drift Protocol, enabling users to use VUSD as collateral for perpetual futures and spot trading.
+v1ta's VUSD stablecoin is integrated with Drift Protocol, letting users use VUSD as collateral for perpetual futures and spot trading.
 
 ## What is Drift?
 
@@ -39,21 +39,7 @@ VUSD can be used as collateral in Drift for:
 
 ## Integration Architecture
 
-```
-┌────────────────────────────────────────────────────┐
-│                  User Wallet                        │
-└──────────┬─────────────────────────────────────────┘
-           │
-    ┌──────┴──────┐
-    ▼             ▼
-┌─────────┐   ┌────────────┐
-│  v1ta   │   │   Drift    │
-│         │   │            │
-│ Borrow  ├──►│ Use VUSD   │
-│ VUSD at │   │ for Perps  │
-│ 110% CR │   │ Trading    │
-└─────────┘   └────────────┘
-```
+The user's wallet connects to both v1ta and Drift. v1ta provides borrowed VUSD which is then used for perps trading in Drift.
 
 ## Use Cases
 
@@ -258,17 +244,17 @@ class DeltaNeutralStrategy {
     const collateralValue = (positionData.collateral / 1e9) * solPrice;
     const perpNotional = Math.abs(driftPosition.baseAssetAmount / 1e9 * solPrice);
 
-    const delta = Math.abs(collateralValue - perpNotional);
+    const delta = Math.abs(collateralValue minus perpNotional);
     const deltaPercent = (delta / collateralValue) * 100;
 
-    // Rebalance if delta > 5%
+    // Rebalance if delta over 5%
     if (deltaPercent > 5) {
       console.log(`Rebalancing: ${deltaPercent}% delta`);
 
       // Adjust perp position to match collateral value
       const targetPerpSize = positionData.collateral / 1e9;
       const currentPerpSize = Math.abs(driftPosition.baseAssetAmount / 1e9);
-      const sizeDiff = targetPerpSize - currentPerpSize;
+      const sizeDiff = targetPerpSize minus currentPerpSize;
 
       if (Math.abs(sizeDiff) > 0.01) {
         await this.drift.openPosition(
@@ -302,89 +288,8 @@ class DeltaNeutralStrategy {
       tradingPnl: unrealizedPnl,
       fundingPnl,
       borrowCost,
-      netPnl: unrealizedPnl + fundingPnl - borrowCost
+      netPnl: unrealizedPnl + fundingPnl minus borrowCost
     };
-  }
-}
-```
-
-### Automated Trading Bot
-
-```typescript
-class V1taDriftTradingBot {
-  private v1ta: Program;
-  private drift: DriftClient;
-  private strategy: string;
-
-  async start() {
-    console.log('Starting trading bot...');
-
-    // Monitor markets
-    this.drift.eventEmitter.on('orderFill', async (fill) => {
-      await this.handleOrderFill(fill);
-    });
-
-    // Monitor v1ta position health
-    setInterval(async () => {
-      await this.checkPositionHealth();
-    }, 10000); // Check every 10s
-
-    // Monitor funding rates
-    setInterval(async () => {
-      await this.checkFundingRates();
-    }, 60000); // Check every minute
-  }
-
-  private async handleOrderFill(fill: OrderFillEvent) {
-    console.log('Order filled:', fill);
-    // Update position tracking
-  }
-
-  private async checkPositionHealth() {
-    const [position] = getPositionPDA(this.wallet.publicKey);
-    const positionData = await this.v1ta.account.position.fetch(position);
-
-    const solPrice = await this.getSolPrice();
-    const cr = this.calculateCR(positionData, solPrice);
-
-    if (cr < 120) {
-      console.warn('CR below 120%, reducing Drift leverage');
-      await this.reduceRisk();
-    }
-  }
-
-  private async checkFundingRates() {
-    const fundingRate = await this.drift.getFundingRate(SOL_PERP_MARKET);
-
-    console.log('Current funding rate:', fundingRate);
-
-    // Adjust position based on funding
-    if (Math.abs(fundingRate) > 0.01) {
-      console.log('High funding rate, adjusting strategy');
-      await this.adjustForFunding(fundingRate);
-    }
-  }
-
-  private async reduceRisk() {
-    // Reduce Drift position size
-    const currentPosition = await this.drift.getUser().getPerpPosition(SOL_PERP_MARKET);
-
-    await this.drift.closePosition(
-      SOL_PERP_MARKET,
-      {
-        baseAssetAmount: currentPosition.baseAssetAmount / 2, // Close 50%
-      }
-    );
-
-    // Or add collateral to v1ta
-    await this.v1ta.methods
-      .adjustPosition(
-        new BN(1e9), // Add 1 SOL
-        true,
-        new BN(0),
-        false
-      )
-      .rpc();
   }
 }
 ```
@@ -398,9 +303,9 @@ class V1taDriftTradingBot {
 ### Risk Factors
 
 1. **Double Liquidation Risk**
-   - v1ta: CR must stay > 110%
+   - v1ta: CR must stay over 110%
    - Drift: Margin ratio must stay healthy
-   - Failure on either = liquidation
+   - Failure on either equals liquidation
 
 2. **Leverage Amplification**
    - Borrow at 110% from v1ta
@@ -499,13 +404,13 @@ class RiskManager {
    - Monitor funding rates
 
 3. **Maintain Buffers**
-   - Keep v1ta CR > 140%
-   - Keep Drift margin > 10%
-   - Have emergency VUSD/SOL ready
+   - Keep v1ta CR over 140%
+   - Keep Drift margin over 10%
+   - Have emergency VUSD or SOL ready
 
 4. **Understand Fees**
    - v1ta: 0.5% borrow fee
-   - Drift: Trading fees + funding rates
+   - Drift: Trading fees plus funding rates
    - Calculate total costs before trading
 
 ## Future Enhancements

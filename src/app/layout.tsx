@@ -45,9 +45,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${cormorant.variable} antialiased`} suppressHydrationWarning>
-        <RootProvider>{children}</RootProvider>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${inter.variable} ${cormorant.variable} antialiased dark`} suppressHydrationWarning>
+        <RootProvider
+          theme={{
+            enabled: false,
+            defaultTheme: 'dark',
+            forcedTheme: 'dark',
+          }}
+        >
+          {children}
+        </RootProvider>
       </body>
     </html>
   );

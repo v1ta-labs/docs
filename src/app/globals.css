@@ -356,6 +356,365 @@ body {
   backdrop-filter: blur(20px);
 }
 
+/* Hide theme toggle button - ULTRA NUCLEAR OPTION */
+/* Fumadocs renders theme toggle - we need to eliminate it completely */
+
+/* Method 1: Target by content and structure */
+[data-fumadocs-ui] button[aria-label*="heme"],
+[data-fumadocs-ui] button[title*="heme"],
+[data-fumadocs-ui] button[aria-label*="Theme"],
+[data-fumadocs-ui] button[title*="Theme"],
+[data-fumadocs-ui] button[aria-label="Toggle theme"],
+[data-fumadocs-ui] [data-theme-toggle],
+button[aria-label*="heme"],
+button[title*="heme"],
+button[aria-label*="Theme"],
+button[title*="Theme"],
+
+/* Method 2: Target by icon content (sun/moon) */
+[data-fumadocs-ui] button:has(svg[data-lucide="sun"]),
+[data-fumadocs-ui] button:has(svg[data-lucide="moon"]),
+button:has(svg[data-lucide="sun"]),
+button:has(svg[data-lucide="moon"]),
+[data-fumadocs-ui] button:has(svg[class*="sun"]),
+[data-fumadocs-ui] button:has(svg[class*="moon"]),
+button:has(svg[class*="sun"]),
+button:has(svg[class*="moon"]),
+
+/* Method 3: Target by position in sidebar */
+[data-fumadocs-ui] aside button[type="button"]:has(svg:only-child),
+[data-fumadocs-ui] nav button[type="button"]:has(svg:only-child:not([data-lucide="search"])):not([aria-label="Toggle"]):not([aria-label="Close"]):not([aria-label="Menu"]),
+aside [role="complementary"] button:has(svg),
+aside footer + * button,
+aside > * > * > button:has(svg:only-child),
+
+/* Method 4: Nuclear - hide ALL icon-only buttons in sidebar/nav that aren't labeled */
+[data-fumadocs-ui] aside button:not([data-folder]):not([aria-label]):has(svg:only-child),
+[data-fumadocs-ui] aside button:not([data-folder]):not([aria-label*="fold"]):not([aria-label*="Fold"]):has(svg),
+[data-fumadocs-ui] nav button:not([aria-label]):not([data-search]):has(svg:only-child),
+
+/* Method 5: Hide by footer/bottom position */
+[data-fumadocs-ui] footer button,
+[data-fumadocs-ui] aside > div:last-child button:has(svg),
+[data-fumadocs-ui] aside footer ~ button,
+[data-fumadocs-ui] aside > * > button:last-child,
+[data-fumadocs-ui] aside > div > button:last-of-type:has(svg),
+
+/* Method 6: Hide any standalone button with only SVG child in layout containers */
+[data-fumadocs-ui] > * > button:has(svg:only-child):not([aria-label]),
+[data-fumadocs-ui] aside div:last-child > button,
+[data-fumadocs-ui] aside > * > * > button:not([data-folder]):has(svg:only-child),
+
+/* Method 7: Brute force - hide buttons in specific containers */
+[data-fumadocs-ui] [data-sidebar] button:not([data-folder]):has(svg:only-child),
+[data-fumadocs-ui] aside [role="navigation"] > * > button:has(svg:only-child),
+
+/* Method 8: Target Fumadocs-specific theme toggle classes */
+.fd-theme-toggle,
+[data-theme-toggle],
+[data-fd-theme-toggle],
+.theme-toggle,
+button[data-theme],
+
+/* Method 9: Ultimate fallback - hide small icon buttons in navigation areas */
+[data-fumadocs-ui] nav button:not([aria-expanded]):not([aria-label*="Search"]):not([aria-label*="Menu"]):has(svg:first-child:last-child),
+[data-fumadocs-ui] aside button:not([aria-expanded]):not([aria-label*="fold"]):has(svg:first-child:last-child) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: -9999 !important;
+}
+
+/* Responsive Design for All Screen Sizes */
+
+/* Mobile Phones - Portrait (320px - 480px) */
+@media (max-width: 480px) {
+  [data-fumadocs-ui] aside {
+    max-width: 90vw;
+    font-size: 0.875rem;
+  }
+
+  [data-fumadocs-ui] nav {
+    padding: 0.75rem 1rem;
+  }
+
+  [data-fumadocs-ui] article {
+    padding: 0.75rem;
+    font-size: 0.938rem;
+    line-height: 1.6;
+  }
+
+  [data-fumadocs-ui] article h1 {
+    font-size: 1.75rem;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+  }
+
+  [data-fumadocs-ui] article h2 {
+    font-size: 1.375rem;
+    margin-top: 1.5rem;
+  }
+
+  [data-fumadocs-ui] article h3 {
+    font-size: 1.125rem;
+  }
+
+  [data-fumadocs-ui] article h4 {
+    font-size: 1rem;
+  }
+
+  [data-fumadocs-ui] pre {
+    font-size: 0.75rem;
+    padding: 0.625rem;
+    margin: 1rem -0.75rem;
+    border-radius: 0;
+  }
+
+  [data-fumadocs-ui] :not(pre) > code {
+    font-size: 0.813rem;
+    padding: 0.125em 0.25em;
+  }
+
+  [data-fumadocs-ui] article table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 0.813rem;
+  }
+
+  [data-fumadocs-ui] article table th,
+  [data-fumadocs-ui] article table td {
+    padding: 0.5rem;
+    white-space: nowrap;
+  }
+
+  [data-fumadocs-ui] [data-toc] {
+    font-size: 0.75rem;
+  }
+
+  [data-fumadocs-ui] aside h3,
+  [data-fumadocs-ui] aside h4 {
+    font-size: 0.688rem;
+  }
+}
+
+/* Mobile Phones - Landscape & Small Tablets (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  [data-fumadocs-ui] aside {
+    max-width: 85vw;
+  }
+
+  [data-fumadocs-ui] article {
+    padding: 1rem;
+    font-size: 0.938rem;
+  }
+
+  [data-fumadocs-ui] article h1 {
+    font-size: 1.875rem;
+  }
+
+  [data-fumadocs-ui] article h2 {
+    font-size: 1.5rem;
+  }
+
+  [data-fumadocs-ui] article h3 {
+    font-size: 1.25rem;
+  }
+
+  [data-fumadocs-ui] pre {
+    font-size: 0.813rem;
+    padding: 0.75rem;
+  }
+
+  [data-fumadocs-ui] article table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-fumadocs-ui] [data-toc] {
+    font-size: 0.813rem;
+  }
+}
+
+/* Medium Resolution Fix - Critical Range (770px - 1279px) */
+/* This fixes the layout conflict where TOC/article nav overlaps */
+@media (min-width: 770px) and (max-width: 1279px) {
+  /* Hide TOC on the right to prevent overlap */
+  [data-fumadocs-ui] [data-toc] {
+    display: none !important;
+  }
+
+  /* Give article more breathing room */
+  [data-fumadocs-ui] article {
+    max-width: 100% !important;
+    margin-right: 0 !important;
+    padding: 1.5rem 2rem;
+  }
+
+  /* Ensure main content area uses full available width */
+  [data-fumadocs-ui] main {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Adjust container to prevent squishing */
+  [data-fumadocs-ui] .container,
+  [data-fumadocs-ui] main > div {
+    max-width: 100% !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Prevent sidebar from taking too much space */
+  [data-fumadocs-ui] aside {
+    max-width: 260px;
+    min-width: 240px;
+  }
+
+  /* Adjust article width calculation to account for sidebar */
+  [data-fumadocs-ui] article {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Typography adjustments for medium screens */
+  [data-fumadocs-ui] article h1 {
+    font-size: 2rem;
+  }
+
+  [data-fumadocs-ui] article h2 {
+    font-size: 1.625rem;
+  }
+
+  [data-fumadocs-ui] article h3 {
+    font-size: 1.375rem;
+  }
+
+  [data-fumadocs-ui] pre {
+    font-size: 0.875rem;
+  }
+
+  /* Make code blocks scroll instead of breaking layout */
+  [data-fumadocs-ui] pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  /* Prevent tables from breaking layout */
+  [data-fumadocs-ui] article table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  /* Ensure images don't overflow */
+  [data-fumadocs-ui] article img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Tablets - Portrait (769px - 1024px) - Additional specific fixes */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Apply same fixes as above for this range */
+  [data-fumadocs-ui] article {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+
+  [data-fumadocs-ui] article h1 {
+    font-size: 2rem;
+  }
+
+  [data-fumadocs-ui] article h2 {
+    font-size: 1.625rem;
+  }
+
+  [data-fumadocs-ui] article h3 {
+    font-size: 1.375rem;
+  }
+
+  [data-fumadocs-ui] pre {
+    font-size: 0.875rem;
+  }
+}
+
+/* Small Laptops (1025px - 1366px) */
+@media (min-width: 1025px) and (max-width: 1366px) {
+  [data-fumadocs-ui] article {
+    max-width: 100%;
+  }
+}
+
+/* Universal Mobile Improvements */
+@media (max-width: 768px) {
+  /* Make all buttons more touch-friendly */
+  [data-fumadocs-ui] button,
+  [data-fumadocs-ui] a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Improve spacing */
+  [data-fumadocs-ui] article p {
+    margin-bottom: 1rem;
+  }
+
+  [data-fumadocs-ui] article ul,
+  [data-fumadocs-ui] article ol {
+    padding-left: 1.25rem;
+  }
+
+  /* Make images responsive */
+  [data-fumadocs-ui] article img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Improve blockquote spacing */
+  [data-fumadocs-ui] article blockquote {
+    padding: 0.75rem 1rem;
+    margin: 1rem -0.75rem;
+  }
+
+  /* Hide TOC on very small screens */
+  [data-fumadocs-ui] [data-toc] {
+    display: none;
+  }
+
+  /* Make navigation more compact */
+  [data-fumadocs-ui] nav {
+    height: auto;
+    min-height: 3.5rem;
+  }
+
+  /* Improve sidebar touch targets */
+  [data-fumadocs-ui] aside a,
+  [data-fumadocs-ui] aside button {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-height: 600px) and (orientation: landscape) {
+  [data-fumadocs-ui] nav {
+    min-height: 3rem;
+  }
+
+  [data-fumadocs-ui] article {
+    padding-top: 0.5rem;
+  }
+}
+
 /* Add smooth scrolling */
 [data-fumadocs-ui] {
   scroll-behavior: smooth;

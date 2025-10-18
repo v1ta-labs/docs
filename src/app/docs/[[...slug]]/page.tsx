@@ -2,7 +2,6 @@ import { source } from '@/lib/source';
 import type { Metadata } from 'next';
 import { DocsPage, DocsBody } from 'fumadocs-ui/page';
 import { notFound } from 'next/navigation';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -11,18 +10,21 @@ export default async function Page(props: {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  const MDX = page.data.body;
+  const pageData = page.data as unknown as Record<string, unknown> & {
+    exports?: { default: React.ComponentType };
+  };
+  const MDX = pageData.exports?.default || (() => null);
 
   const path = `content/docs/${params.slug?.join('/') || 'index'}.mdx`;
 
   return (
     <DocsPage
-      toc={page.data.toc}
-      full={page.data.full}
-      lastUpdate={page.data.lastModified}
+      toc={pageData.toc as never}
+      full={pageData.full as boolean | undefined}
+      lastUpdate={pageData.lastModified as Date | undefined}
       editOnGithub={{
-        owner: 'v1ta-protocol',
-        repo: 'v1ta',
+        owner: 'v1ta-labs',
+        repo: 'docs',
         sha: 'main',
         path,
       }}
@@ -51,8 +53,8 @@ export default async function Page(props: {
       }}
     >
       <DocsBody>
-        <h1>{page.data.title}</h1>
-        <MDX components={{ ...defaultMdxComponents }} />
+        <h1>{(pageData.title as string) || ''}</h1>
+        <MDX />
       </DocsBody>
     </DocsPage>
   );
@@ -69,8 +71,13 @@ export async function generateMetadata(props: {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
+  const pageData = page.data as unknown as {
+    title?: string;
+    description?: string;
+  };
+
   return {
-    title: page.data.title,
-    description: page.data.description,
+    title: pageData.title,
+    description: pageData.description,
   };
 }

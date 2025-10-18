@@ -357,12 +357,6 @@ export default function Home() {
                     <span className="absolute inset-x-0 -bottom-0.5 h-px bg-[#2a4930] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
                   </a>
                 </li>
-                <li>
-                  <Link href="/docs/whitepaper" className="relative inline-block text-white/40 hover:text-white text-sm transition-all duration-300 group">
-                    <span>Whitepaper</span>
-                    <span className="absolute inset-x-0 -bottom-0.5 h-px bg-[#2a4930] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                  </Link>
-                </li>
               </ul>
             </div>
 
@@ -406,18 +400,6 @@ export default function Home() {
                 <li>
                   <Link href="/docs/developer/getting-started" className="relative inline-block text-white/40 hover:text-white text-sm transition-all duration-300 group">
                     <span>Getting Started</span>
-                    <span className="absolute inset-x-0 -bottom-0.5 h-px bg-[#2a4930] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/docs/developer/sdk" className="relative inline-block text-white/40 hover:text-white text-sm transition-all duration-300 group">
-                    <span>SDK</span>
-                    <span className="absolute inset-x-0 -bottom-0.5 h-px bg-[#2a4930] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/docs/developer/api" className="relative inline-block text-white/40 hover:text-white text-sm transition-all duration-300 group">
-                    <span>API Reference</span>
                     <span className="absolute inset-x-0 -bottom-0.5 h-px bg-[#2a4930] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
                   </Link>
                 </li>

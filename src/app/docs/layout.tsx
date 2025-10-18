@@ -30,13 +30,10 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         ),
         transparentMode: 'top',
-        enabled: true,
-        hideThemeToggle: true,
       }}
       sidebar={{
         defaultOpenLevel: 1,
         collapsible: true,
-        hideThemeToggle: true,
         banner: (
           <div className="relative overflow-hidden rounded-2xl p-4 mb-4 backdrop-blur-xl" style={{
             background: 'rgba(42, 73, 48, 0.1)',

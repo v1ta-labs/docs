@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "fumadocs-ui/style.css";
 
+
 /* Responsive Grid Fix for Tailwind v4 */
 @media (min-width: 768px) {
   .md\:grid-cols-2 {
@@ -946,3 +947,4 @@ header {
   background-color: rgba(42, 73, 48, 0.3);
   color: var(--text-primary);
 }
+
